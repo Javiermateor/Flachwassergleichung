@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize
+import matplotlib.animation as animation
+from scipy.constants import g
 
 def dammbruch(x, t, x0, hl, hr, Sw):
     # Diskretisierung des Gebiets mit anfangsbedingungen
@@ -44,7 +46,6 @@ def hu(x, t):
 
 
 def erhaltungsschema(CFL, Nx, hl, hr, x0):
-    g = 9.81
     x = np.linspace(0, 1, Nx)
     dx = x[1] - x[0]
 
@@ -86,43 +87,52 @@ def erhaltungsschema(CFL, Nx, hl, hr, x0):
         h[Nx - 1, k] = h[Nx - 2, k]
     return h
 
-
-# Initialisierung der Werte:
-hl = 1
-hr = 0.5
-x0 = 0.5
-g = 9.81
-CFL = 1
-Nx = 100  # [10, 50, 100, 1000]
-Nt = 100
-
-# temporär: (Ersetzen mit Anfangsbedingungen, dann müsste t in Anfangsbedingungen ergänzt werden)
-x = np.linspace(0, 1, Nx)
-t = np.linspace(0, 0.1, Nt)
-
-
 # Sw bestimmen
 def f(Sw):
-    return Sw - (g * hr) / (4 * Sw) * (1 + np.sqrt(1 + (8 * Sw ** 2) / (g * hr))) + 2 * np.sqrt(
-        (g * hr) / 2 * (np.sqrt(1 + (8 * Sw ** 2) / (g * hr)) - 1)) - 2 * np.sqrt(g * hl)
+    return Sw - (g*hr)/(4*Sw)*(1+np.sqrt(1+(8*Sw**2)/(g*hr))) + 2*np.sqrt((g*hr)/2*(np.sqrt(1+(8*Sw**2)/(g*hr))-1)) - 2*np.sqrt(g*hl)
 
+#main Programm
+if __name__ == "__main__":
+    # Initialisierung der Werte:
+    hl = 1
+    hr = 0.5
+    x0 = 0.5
+    CFL = 1
+    N = [10, 50, 100, 1000]
+    
+    # Sw bestimmen
+    z = 1
+    while True:
+        Sw = optimize.newton(f, z) # Validierung des positiven ergebnisses
+        z += 1
+        if Sw > 0:
+            break
+    
+    # Plot mit verschiedenen N
+    plt.style.use('seaborn')
 
-z = 1
-while True:
-    Sw = optimize.newton(f, z)  # Validierung des positiven ergebnisses
-    z += 1
-    if Sw > 0:
-        break
+    fig, axs = plt.subplots(2, 2,figsize=(20, 9))
+    fig.suptitle(f'Numerische Lösung vs Analytische Lösung bei T = 0.1s', fontsize=15)
+    # fig2.suptitle(f'N = {N} CFL = {CFL}', fontsize=15)
+    fig.subplots_adjust(hspace=0.5)
 
-h_ana, u = dammbruch(x, t, x0, hl, hr, Sw)
-h = erhaltungsschema(CFL, Nx, hl, hr, x0)
+    for i in range(len(N)):
+        x = np.linspace(0, 1, N[i])
+        t = np.linspace(0, 0.1, N[i])
+        
+        h_ana,u = dammbruch(x,t,x0,hl,hr,Sw)
+        h = erhaltungsschema(CFL, N[i], hl, hr, x0)
+        
+        axs[i//2,i%2].plot(x, h_ana[:,-1], label='Analytisch')
+        axs[i//2,i%2].plot(x, h[:,0], label='Numerisch')
+        
 
-fig, ax = plt.subplots()
-ax.plot(x, h[:, 0])
-ax.plot(x, h_ana[:, -1])
-ax.set_xlabel('x')
-ax.set_ylabel('Höhe')
-ax.title.set_fontsize(13)
-ax.set_xlim(0, 1)
-ax.set_ylim(0, 1)
-plt.show()
+        axs[i//2,i%2].set_xlabel('x')
+        axs[i//2,i%2].set_ylabel('Höhe')
+        axs[i//2,i%2].title.set_fontsize(13)
+        axs[i//2,i%2].set_xlim(0,1)
+        axs[i//2,i%2].set_ylim(0,1)
+        axs[i//2,i%2].set_title(f'N = {N[i]}')
+        axs[i//2,i%2].legend()
+
+    plt.show()
