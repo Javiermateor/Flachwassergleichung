@@ -73,9 +73,7 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
     fig = plt.figure()
     
     while z < tmax:
-        # Zeitschritt laut Jojo:
-        # Diagramm von v1 über die Zeit darstelle
-        # könnte entfernt werden zu np.array([0,0]), da jetzt auch in schleife 0,0 berechnet
+        # Berechnung der Eigenwerte
         EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
         EWY = np.array([hv[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hv[0,0]/h[0,0]+np.sqrt(g*h[0,0])])
         for j in range(0,Nx):
