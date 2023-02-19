@@ -121,16 +121,17 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
         #plot the surface in 3D 
         ax = fig.gca(projection='3d')
         ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
-        ax.set_title('Erhaltungsschema 2D')
+        ax.set_title('Lax-Friedrich')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('h')
         ax.set_xlim(0,10)
         ax.set_ylim(0,10)
         ax.set_zlim(1.4,2.1)
+        
         display.display(plt.gcf())
         display.clear_output(wait=True)
-        plt.pause(0.1)
+        plt.pause(0.01)
         plt.clf()
         
     return h, hu, hv, v1, t1
@@ -257,7 +258,7 @@ def maccormack(CFL, Nx, hh, ht):
         ax.set_zlim(1.4,2.1)
         display.display(plt.gcf())
         display.clear_output(wait=True)
-        plt.pause(0.1)
+        plt.pause(0.01)
         plt.clf()
         
     return h, hu, hv, v2, t2
@@ -266,17 +267,17 @@ def maccormack(CFL, Nx, hh, ht):
 
 if __name__ == "__main__":
     
-    #Erhaltungsschema
+    #Lax-Friedrich
     h, hu, hv, v1, t1 = erhaltungsschema_2D(CFL=0.4, Nx = 50, hh= 2, ht= 1.5)
     #Maccormack
-    h, hu, hv, v2, t2 = maccormack(CFL=0.4, Nx = 10, hh= 2, ht= 1.5)
+    h, hu, hv, v2, t2 = maccormack(CFL=0.4, Nx = 50, hh= 2, ht= 1.5)
     
     plt.style.use('seaborn')
 
     # Vergleich der Lösungen
-    plt.plot(t2, v2, label='Maccormack')
-    plt.plot(t1, v1, label='Lax-Wendroff')
-    plt.title('Maccormack vs Lax-Wendroff')
+    plt.plot(t2, v2, label='MacCormack')
+    plt.plot(t1, v1, label='Lax-Friedrich')
+    plt.title('MacCormack vs Lax-Friedrich')
     plt.xlabel('Zeit (s)')
     plt.ylabel('Höhe (m)')
     plt.legend()
