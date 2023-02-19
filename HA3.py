@@ -121,6 +121,7 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
         #plot the surface in 3D 
         ax = fig.gca(projection='3d')
         ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
+        ax.set_title('Erhaltungsschema 2D')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('h')
