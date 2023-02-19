@@ -68,7 +68,7 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
     t1 = np.zeros(1)
    
     
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10,10))
     
     while z < tmax:
         # Berechnung der Eigenwerte
