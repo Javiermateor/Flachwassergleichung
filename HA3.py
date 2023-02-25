@@ -23,7 +23,7 @@ def reflektierender_block(Nx, Ny, h):
     h[-1,-1] = 1/(2) * (h[-1,-2] + h[-2,-1]) #Quelle: S.25 (1.132)
     return h
 
-def erhaltungsschema_2D(CFL, Nx, hh, ht):
+def erhaltungsschema_2D(CFL, Nx, hh, ht, darstellung):
     Ny = Nx
     x = np.linspace(0, 10, Nx)
     y = np.linspace(0, 10, Ny)
@@ -68,8 +68,12 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
     t1 = np.zeros(1)
    
     
-    fig = plt.figure(figsize=(10,10))
-    
+    if darstellung == 3:
+        fig = plt.figure(figsize=(10,10))
+    if darstellung == 2:
+        fig = plt.figure(figsize=(20,10))
+        ax_contour = fig.add_subplot(111,frameon = False)
+        plt.show(block= False)
     while z < tmax:
         # Berechnung der Eigenwerte
         EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
@@ -112,31 +116,47 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
         h = reflektierender_block(Nx,Ny, h)
         hu = reflektierender_block(Nx,Ny, hu)
         hv = reflektierender_block(Nx,Ny, hv)
+        u = hu/h
+        v = hv/h
         v1 = np.append(v1, [np.amax(h)])
         t1 = np.append(t1, [z])
      
         # #create a meshgrid
         X,Y = np.meshgrid(x,y)
 
-        #plot the surface in 3D 
-        ax = fig.gca(projection='3d')
-        ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
-        ax.set_title('Lax-Friedrich')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('h')
-        ax.set_xlim(0,10)
-        ax.set_ylim(0,10)
-        ax.set_zlim(1.4,2.1)
-        
-        display.display(plt.gcf())
-        display.clear_output(wait=True)
-        plt.pause(0.01)
-        plt.clf()
+        if darstellung == 3:
+            #plot the surface in 3D
+            ax = fig.gca(projection='3d')
+            ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
+            ax.set_title('Lax-Friedrich')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('h')
+            ax.set_xlim(0,10)
+            ax.set_ylim(0,10)
+            ax.set_zlim(1.4,2.1)
+
+            display.display(plt.gcf())
+            display.clear_output(wait=True)
+            plt.pause(0.01)
+            plt.clf()
+
+        if darstellung == 2:
+            ax_contour.cla()
+            ax_contour.set_title('Höhenverlauf')
+            ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
+
+            ax_contour.quiver(X, Y, v, u)
+            ax_contour.set_aspect('equal')
+
+            plt.draw()
+            plt.pause(0.01)
+
         
     return h, hu, hv, v1, t1
 
-def maccormack(CFL, Nx, hh, ht):
+def maccormack(CFL, Nx, hh, ht, darstellung):
     Ny = Nx
     x = np.linspace(0, 10, Nx)
     y = np.linspace(0, 10, Ny)
@@ -184,8 +204,12 @@ def maccormack(CFL, Nx, hh, ht):
     t2 = np.zeros(1)
     v2[0] =  np.amax(h)
 
-
-    fig = plt.figure(figsize=(10,10))
+    if darstellung == 3:
+        fig = plt.figure(figsize=(10,10))
+    if darstellung == 2:
+        fig = plt.figure(figsize=(20,10))
+        ax_contour = fig.add_subplot(111,frameon = False)
+        plt.show(block= False)
     
     while z < tmax:
         # Zeitschritt laut Jojo:
@@ -239,28 +263,39 @@ def maccormack(CFL, Nx, hh, ht):
         h = reflektierender_block(Nx,Ny, h)
         hu = reflektierender_block(Nx,Ny, hu)
         hv = reflektierender_block(Nx,Ny, hv)
+        u = hu/h
+        v = hv/h
         v2 = np.append(v2, [np.amax(h)])
         t2 = np.append(v2, [z])
 
         # #create a meshgrid
         X,Y = np.meshgrid(x,y)
 
-        #plot the surface in 3D 
-        
-        ax = fig.gca(projection='3d')
-        ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
-        ax.set_title('Mccormack')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('h')
-        ax.set_xlim(0,10)
-        ax.set_ylim(0,10)
-        ax.set_zlim(1.4,2.1)
-        display.display(plt.gcf())
-        display.clear_output(wait=True)
-        plt.pause(0.01)
-        plt.clf()
-        
+        if darstellung == 3:
+            #plot the surface in 3D
+            ax = fig.gca(projection='3d')
+            ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
+            ax.set_title('Mccormack')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('h')
+            ax.set_xlim(0,10)
+            ax.set_ylim(0,10)
+            ax.set_zlim(1.4,2.1)
+            display.display(plt.gcf())
+            display.clear_output(wait=True)
+            plt.pause(0.01)
+            plt.clf()
+        if darstellung == 2:
+            ax_contour.cla()
+            ax_contour.set_title('Höhenverlauf')
+            ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
+            ax_contour.quiver(X, Y, v, u)
+            ax_contour.set_aspect('equal')
+
+            plt.draw()
+            plt.pause(0.01)
     return h, hu, hv, v2, t2
 
 # Irgendwo müssen noch Fehler in den Gleichungen sein, die Berechnung liefert negative Höhen, was nicht geht. Auch Höhen von größer als 2 sind am Anfang, das kann ja am Anfang auch nicht sein.
@@ -268,9 +303,9 @@ def maccormack(CFL, Nx, hh, ht):
 if __name__ == "__main__":
     
     #Lax-Friedrich
-    h, hu, hv, v1, t1 = erhaltungsschema_2D(CFL=0.4, Nx = 50, hh= 2, ht= 1.5)
+    h, hu, hv, v1, t1 = erhaltungsschema_2D(CFL=0.4, Nx = 50, hh= 2, ht= 1.5, darstellung= 2)
     #Maccormack
-    h, hu, hv, v2, t2 = maccormack(CFL=0.4, Nx = 50, hh= 2, ht= 1.5)
+    h, hu, hv, v2, t2 = maccormack(CFL=0.4, Nx = 50, hh= 2, ht= 1.5, darstellung= 2)
     
     plt.style.use('seaborn')
 
