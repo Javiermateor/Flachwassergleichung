@@ -4,46 +4,83 @@ from scipy.constants import g
 from IPython import display
 
 # Reflektierender Rand um einen Block:
-def reflektierender_block(Nx, Ny, h):
-    # EDGES
-    for j in range(Nx):
-        if j == 0:
-            for k in range(1, Ny-1):
-                h[j,k] = h[j+1,k] #Quelle: S.25 (1.126)
-        elif j == (Nx-1):
-            for k in range(1, Ny-1):
-                h[j,k] = h[j-1,k] #Quelle: S.25 (1.128)
-        else:
-            h[j,0] = h[j,1]    #Quelle: S.25 (1.127)
-            h[j,-1] = h[j,-2]  #Quelle: S.25 (1.125)
-    # CORNERS
-    h[0,0]   = 1/(2) * (h[0,1] + h[1,0])   #Quelle: S.25 (1.129)
-    h[0,-1]  = 1/(2) * (h[0,-2] + h[1,-1])  #Quelle: S.25 (1.130)
-    h[-1,0]  = 1/(2) * (h[-2,0] + h[-1,1])   #Quelle: S.25 (1.131)
-    h[-1,-1] = 1/(2) * (h[-1,-2] + h[-2,-1]) #Quelle: S.25 (1.132)
+
+def periodischer_block(h):
+    h[:,0] = h[:,-2]
+    h[:,-1] = h[:,1]
+    h[0,:] = h[-2,:]
+    h[-1,:] = h[1,:]
     return h
 
-def erhaltungsschema_2D(CFL, Nx, hh, ht):
-    Ny = Nx
+def reflektierender_block(h):
+    h[:,0] = h[:,1]
+    h[:,-1] = h[:,-2]
+    h[0,:] = h[1,:]
+    h[-1,:] = h[-2,:]
+    return h
+
+def anfangsbedingungen32(hh, ht, Nx, Ny):
     x = np.linspace(0, 10, Nx)
     y = np.linspace(0, 10, Ny)
-
-    dx = x[1] - x[0]
-    dy = y[1] - y[0]
-    
-   # Initialisierung der Arrays
-    h = np.zeros((Nx, Ny), dtype = np.double)
-    hu = np.zeros((Nx, Ny), dtype = np.double)
-    hv = np.zeros((Nx, Ny), dtype = np.double)
+    # Initialisierung der Arrays
+    h = np.zeros((Nx, Ny), dtype=np.double)
+    hu = np.zeros((Nx, Ny), dtype=np.double)
+    hv = np.zeros((Nx, Ny), dtype=np.double)
 
     # Anfangsbedingungen
     # hv und hu sind 0, da u und v 0 sind
     for j in range(Nx):
         for k in range(Ny):
             if (4 <= x[j] <= 6) and (4 <= y[k] <= 6):
-                h[j,k] = hh
+                h[j, k] = hh
             else:
-                h[j,k] = ht
+                h[j, k] = ht
+    return h, hu, hv
+
+def anfangsbedingungen33():
+     # Anfangsparameter
+    interval = 100e3
+    Nx = 24
+    Ny = 60
+    
+    dx = interval
+    dy = dx
+
+    x = np.arange(0, interval * Nx, interval)
+    y = np.arange(0, interval * Ny, interval)
+
+    [Y, _] = np.meshgrid(y, x)
+    
+    ######## Konstanten ########
+    Ωe = 7.2921e-5 # Drehfrequenz der Erde in 1/s
+    Re = 6371e3 # Erdradius in m
+    y0 = 3e6 # Breitengrad in Grad
+    
+    ########### Coriolisfaktor ##############
+    latitude = 35
+    θ_0 = np.deg2rad(latitude) # Breitengrad in Bogenmaß
+    fc_0 = 2*Ωe*np.sin(θ_0) # Mittlere Zentrifugalkraft in 1/s^2
+    f = fc_0 + (2*Ωe/Re)*(Y-y0) # Coriolisfaktor
+    ########### Anfangsbedingungen ##############
+    W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
+    W += np.random.uniform(1, 5, size=W.shape);
+    
+    [dWdx, dWdy] = np.gradient(W, *[dy, dx])
+    u = (-g/f)*dWdy
+    v = (g/f)*dWdx
+    # Initialisierung der Arrays
+    h = W
+    hu = h*u
+    hv = h*v 
+
+    return h, hu, hv, f
+
+def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
+    x = np.linspace(0, 10, Nx)
+    y = np.linspace(0, 10, Ny)
+
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
 
     # Berechnung der Zeit
     z = 0 
@@ -67,9 +104,14 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
     v1 = np.amax(h)
     t1 = np.zeros(1)
    
-    
-    fig = plt.figure(figsize=(10,10))
-    
+
+    if darstellung == 3:
+        fig = plt.figure(figsize=(10,10))
+    if darstellung == 2:
+        fig = plt.figure(figsize=(20,10))
+        ax_contour = fig.add_subplot(111,frameon = False)
+        plt.show(block= False)
+
     while z < tmax:
         # Berechnung der Eigenwerte
         EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
@@ -109,58 +151,69 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht):
                 hv[j,k] = hv[j,k] - (dt/dx) * (F_j12c[j,k] - F_j12c[j-1,k]) - ((dt/dy) * (G_k12c[j,k] - G_k12c[j,k-1]))
 
         #Reflektierende Randbedingungen
-        h = reflektierender_block(Nx,Ny, h)
-        hu = reflektierender_block(Nx,Ny, hu)
-        hv = reflektierender_block(Nx,Ny, hv)
+        h = reflektierender_block(h)
+        hu = reflektierender_block(hu)
+        hv = reflektierender_block(hv)
+        u = hu/h
+        v = hv/h
         v1 = np.append(v1, [np.amax(h)])
         t1 = np.append(t1, [z])
      
         # #create a meshgrid
         X,Y = np.meshgrid(x,y)
 
-        #plot the surface in 3D 
-        ax = fig.gca(projection='3d')
-        ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
-        ax.set_title('Lax-Friedrich')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('h')
-        ax.set_xlim(0,10)
-        ax.set_ylim(0,10)
-        ax.set_zlim(1.4,2.1)
-        
-        display.display(plt.gcf())
-        display.clear_output(wait=True)
-        plt.pause(0.01)
-        plt.clf()
+        if darstellung == 3:
+            #plot the surface in 3D
+            ax = fig.gca(projection='3d')
+            ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
+            ax.set_title('Lax-Friedrich')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('h')
+            ax.set_xlim(0,10)
+            ax.set_ylim(0,10)
+            ax.set_zlim(1.4,2.1)
+
+            display.display(plt.gcf())
+            display.clear_output(wait=True)
+            plt.pause(0.01)
+            plt.clf()
+
+        if darstellung == 2:
+            ax_contour.cla()
+            ax_contour.set_title('Höhenverlauf')
+            contour = ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            cb = fig.colorbar(contour, ax=ax_contour)
+            # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
+
+            ax_contour.quiver(X, Y, v, u)
+            ax_contour.set_aspect('equal')
+
+            plt.draw()
+            plt.pause(0.01)
+            cb.remove()
+
         
     return h, hu, hv, v1, t1
 
-def maccormack(CFL, Nx, hh, ht):
-    Ny = Nx
-    x = np.linspace(0, 10, Nx)
-    y = np.linspace(0, 10, Ny)
+def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
+    if (aufgabe == 3.2):
+        x = np.linspace(0, 10, Nx)
+        y = np.linspace(0, 10, Ny)
+    elif(aufgabe == 3.3):
+        interval = 100e3
+        x = np.arange(0, interval * Nx, interval)
+        y = np.arange(0, interval * Ny, interval)
 
     dx = x[1] - x[0]
     dy = y[1] - y[0]
 
-   # Initialisierung der Arrays
-    h = np.zeros((Nx, Ny), dtype = np.double)
-    hu = np.zeros((Nx, Ny), dtype = np.double)
-    hv = np.zeros((Nx, Ny), dtype = np.double)
-
-    # Anfangsbedingungen
-    # hv und hu sind 0, da u und v 0 sind
-    for j in range(Nx):
-        for k in range(Ny):
-            if (4 <= x[j] <= 6) and (4 <= y[k] <= 6):
-                h[j,k] = hh
-            else:
-                h[j,k] = ht
-
     # Berechnung der Zeit
     z = 0
-    tmax = 5
+    if aufgabe == 3.2:
+        tmax = 5
+    if aufgabe == 3.3:
+        tmax = 5 * 3600
 
 
     # Matrizen Berechnen der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
@@ -184,8 +237,12 @@ def maccormack(CFL, Nx, hh, ht):
     t2 = np.zeros(1)
     v2[0] =  np.amax(h)
 
-
-    fig = plt.figure(figsize=(10,10))
+    if darstellung == 3:
+        fig = plt.figure(figsize=(10,10))
+    if darstellung == 2:
+        fig = plt.figure(figsize=(20,10))
+        ax_contour = fig.add_subplot(111, frameon=False)
+        plt.show(block= False)
     
     while z < tmax:
         # Zeitschritt laut Jojo:
@@ -201,7 +258,9 @@ def maccormack(CFL, Nx, hh, ht):
         print(dt)
 
         z += dt
-        
+
+        S_b = -f * hv
+        S_c = f * hu
         # Berechnung der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
         for j in range(0, Nx):
             for k in range(0, Ny):
@@ -215,8 +274,8 @@ def maccormack(CFL, Nx, hh, ht):
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
                 h_12[j,k]  = h[j,k]   - (dt/dx) * (Fa[j+1,k] - Fa[j,k]) - ((dt/dy) * (Ga[j,k+1] - Ga[j,k])) # Quelle: TUT
-                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) # + dt * S(u)
-                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k]))
+                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * S_b[j, k])
+                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * S_c[j, k])
 
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
@@ -231,58 +290,82 @@ def maccormack(CFL, Nx, hh, ht):
         for j in range(1, Nx-1):
             for k in range(1, Ny-1):
                 h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
-                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1]))# +dt*0.5*S(u)
-                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1]))
+                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*S_b[j, k])
+                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*S_c[j, k])
 
-
+        if aufgabe == 3.2:
         #Reflektierende Randbedingungen
-        h = reflektierender_block(Nx,Ny, h)
-        hu = reflektierender_block(Nx,Ny, hu)
-        hv = reflektierender_block(Nx,Ny, hv)
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
+        if aufgabe == 3.3:
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
+
+        u = hu/h
+        v = hv/h
         v2 = np.append(v2, [np.amax(h)])
         t2 = np.append(v2, [z])
 
         # #create a meshgrid
-        X,Y = np.meshgrid(x,y)
+        if (aufgabe==3.2):
+            X,Y = np.meshgrid(x,y)
+        elif (aufgabe==3.3):
+            Y,X = np.meshgrid(y,x)
 
-        #plot the surface in 3D 
-        
-        ax = fig.gca(projection='3d')
-        ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
-        ax.set_title('Mccormack')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('h')
-        ax.set_xlim(0,10)
-        ax.set_ylim(0,10)
-        ax.set_zlim(1.4,2.1)
-        display.display(plt.gcf())
-        display.clear_output(wait=True)
-        plt.pause(0.01)
-        plt.clf()
-        
+        if darstellung == 3:
+            #plot the surface in 3D
+            ax = fig.gca(projection='3d')
+            ax.plot_surface(X, Y, h, cmap='cool', linewidth=0, antialiased=False)
+            ax.set_title('Mccormack')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('h')
+            ax.set_xlim(0,10)
+            ax.set_ylim(0,10)
+            ax.set_zlim(1.4,2.1)
+            display.display(plt.gcf())
+            display.clear_output(wait=True)
+            plt.pause(0.01)
+            plt.clf()
+        if darstellung == 2:
+            ax_contour.cla()
+            ax_contour.set_title('Höhenverlauf')
+            ax_contour.set_xlim(0, 240e4)
+            ax_contour.set_ylim(0, 600e4)
+
+            contour = ax_contour.contourf(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
+            cb = fig.colorbar(contour, ax=ax_contour)
+            # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
+            ax_contour.quiver(X, Y, u, v)
+
+            plt.draw()
+            plt.pause(0.01)
+            cb.remove()
     return h, hu, hv, v2, t2
 
 # Irgendwo müssen noch Fehler in den Gleichungen sein, die Berechnung liefert negative Höhen, was nicht geht. Auch Höhen von größer als 2 sind am Anfang, das kann ja am Anfang auch nicht sein.
 
 if __name__ == "__main__":
-    
-    #Lax-Friedrich
-    h, hu, hv, v1, t1 = erhaltungsschema_2D(CFL=0.4, Nx = 50, hh= 2, ht= 1.5)
-    #Maccormack
-    h, hu, hv, v2, t2 = maccormack(CFL=0.4, Nx = 50, hh= 2, ht= 1.5)
-    
+    # # Lax-Friedrich
+    # h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
+    # h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
+    # #Maccormack
+    # h, hu, hv = anfangsbedingungen32(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
+    # f = np.zeros([50, 50])
+    # h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2)
+    # Aufgabenteil 3.3.1
+    h, hu, hv, f = anfangsbedingungen33()
+    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3)
+
     plt.style.use('seaborn')
 
-    # Vergleich der Lösungen
-    plt.plot(t2, v2, label='MacCormack')
-    plt.plot(t1, v1, label='Lax-Friedrich')
-    plt.title('MacCormack vs Lax-Friedrich')
-    plt.xlabel('Zeit (s)')
-    plt.ylabel('Höhe (m)')
-    plt.legend()
-    plt.show()
-
-
-
-
+    # # Vergleich der Lösungen
+    # plt.plot(t2, v2, label='MacCormack')
+    # plt.plot(t1, v1, label='Lax-Friedrich')
+    # plt.title('MacCormack vs Lax-Friedrich')
+    # plt.xlabel('Zeit (s)')
+    # plt.ylabel('Höhe (m)')
+    # plt.legend()
+    # plt.show()
