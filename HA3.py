@@ -4,6 +4,7 @@ from scipy.constants import g
 from IPython import display
 
 # Reflektierender Rand um einen Block:
+
 def periodischer_block(h):
     h[:,0] = h[:,-2]
     h[:,-1] = h[:,1]
@@ -80,7 +81,6 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
 
     dx = x[1] - x[0]
     dy = y[1] - y[0]
-    
 
     # Berechnung der Zeit
     z = 0 
@@ -104,13 +104,14 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
     v1 = np.amax(h)
     t1 = np.zeros(1)
    
-    
+
     if darstellung == 3:
         fig = plt.figure(figsize=(10,10))
     if darstellung == 2:
         fig = plt.figure(figsize=(20,10))
         ax_contour = fig.add_subplot(111,frameon = False)
         plt.show(block= False)
+
     while z < tmax:
         # Berechnung der Eigenwerte
         EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
@@ -204,10 +205,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         x = np.arange(0, interval * Nx, interval)
         y = np.arange(0, interval * Ny, interval)
 
-
     dx = x[1] - x[0]
     dy = y[1] - y[0]
-
 
     # Berechnung der Zeit
     z = 0
@@ -260,10 +259,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
 
         z += dt
 
-
         S_b = -f * hv
         S_c = f * hu
-
         # Berechnung der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
         for j in range(0, Nx):
             for k in range(0, Ny):
@@ -346,7 +343,6 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
             plt.draw()
             plt.pause(0.01)
             cb.remove()
-
     return h, hu, hv, v2, t2
 
 # Irgendwo müssen noch Fehler in den Gleichungen sein, die Berechnung liefert negative Höhen, was nicht geht. Auch Höhen von größer als 2 sind am Anfang, das kann ja am Anfang auch nicht sein.
@@ -373,7 +369,3 @@ if __name__ == "__main__":
     # plt.ylabel('Höhe (m)')
     # plt.legend()
     # plt.show()
-
-
-
-
