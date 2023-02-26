@@ -144,7 +144,8 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht, darstellung):
         if darstellung == 2:
             ax_contour.cla()
             ax_contour.set_title('Höhenverlauf')
-            ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            contour = ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            cb = fig.colorbar(contour, ax=ax_contour)
             # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
 
             ax_contour.quiver(X, Y, v, u)
@@ -152,6 +153,7 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht, darstellung):
 
             plt.draw()
             plt.pause(0.01)
+            cb.remove()
 
         
     return h, hu, hv, v1, t1
@@ -289,13 +291,16 @@ def maccormack(CFL, Nx, hh, ht, darstellung):
         if darstellung == 2:
             ax_contour.cla()
             ax_contour.set_title('Höhenverlauf')
-            ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            contour = ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            cb = fig.colorbar(contour, ax=ax_contour)
             # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
             ax_contour.quiver(X, Y, v, u)
             ax_contour.set_aspect('equal')
 
             plt.draw()
             plt.pause(0.01)
+            cb.remove()
+
     return h, hu, hv, v2, t2
 
 # Irgendwo müssen noch Fehler in den Gleichungen sein, die Berechnung liefert negative Höhen, was nicht geht. Auch Höhen von größer als 2 sind am Anfang, das kann ja am Anfang auch nicht sein.
