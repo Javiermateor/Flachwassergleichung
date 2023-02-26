@@ -4,46 +4,45 @@ from scipy.constants import g
 from IPython import display
 
 # Reflektierender Rand um einen Block:
-def reflektierender_block(Nx, Ny, h):
-    # EDGES
-    for j in range(Nx):
-        if j == 0:
-            for k in range(1, Ny-1):
-                h[j,k] = h[j+1,k] #Quelle: S.25 (1.126)
-        elif j == (Nx-1):
-            for k in range(1, Ny-1):
-                h[j,k] = h[j-1,k] #Quelle: S.25 (1.128)
-        else:
-            h[j,0] = h[j,1]    #Quelle: S.25 (1.127)
-            h[j,-1] = h[j,-2]  #Quelle: S.25 (1.125)
-    # CORNERS
-    h[0,0]   = 1/(2) * (h[0,1] + h[1,0])   #Quelle: S.25 (1.129)
-    h[0,-1]  = 1/(2) * (h[0,-2] + h[1,-1])  #Quelle: S.25 (1.130)
-    h[-1,0]  = 1/(2) * (h[-2,0] + h[-1,1])   #Quelle: S.25 (1.131)
-    h[-1,-1] = 1/(2) * (h[-1,-2] + h[-2,-1]) #Quelle: S.25 (1.132)
+def periodischer_block(h):
+    h[:,0] = h[:,-2]
+    h[:,-1] = h[:,1]
+    h[0,:] = h[-2,:]
+    h[-1,:] = h[1,:]
     return h
 
-def erhaltungsschema_2D(CFL, Nx, hh, ht, darstellung):
-    Ny = Nx
+def reflektierender_block(h):
+    h[:,0] = h[:,1]
+    h[:,-1] = h[:,-2]
+    h[0,:] = h[1,:]
+    h[-1,:] = h[-2,:]
+    return h
+
+def anfangsbedingungen(hh, ht, Nx, Ny):
     x = np.linspace(0, 10, Nx)
     y = np.linspace(0, 10, Ny)
-
-    dx = x[1] - x[0]
-    dy = y[1] - y[0]
-    
-   # Initialisierung der Arrays
-    h = np.zeros((Nx, Ny), dtype = np.double)
-    hu = np.zeros((Nx, Ny), dtype = np.double)
-    hv = np.zeros((Nx, Ny), dtype = np.double)
+    # Initialisierung der Arrays
+    h = np.zeros((Nx, Ny), dtype=np.double)
+    hu = np.zeros((Nx, Ny), dtype=np.double)
+    hv = np.zeros((Nx, Ny), dtype=np.double)
 
     # Anfangsbedingungen
     # hv und hu sind 0, da u und v 0 sind
     for j in range(Nx):
         for k in range(Ny):
             if (4 <= x[j] <= 6) and (4 <= y[k] <= 6):
-                h[j,k] = hh
+                h[j, k] = hh
             else:
-                h[j,k] = ht
+                h[j, k] = ht
+    return h, hu, hv
+
+def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
+    x = np.linspace(0, 10, Nx)
+    y = np.linspace(0, 10, Ny)
+
+    dx = x[1] - x[0]
+    dy = y[1] - y[0]
+    
 
     # Berechnung der Zeit
     z = 0 
@@ -113,9 +112,9 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht, darstellung):
                 hv[j,k] = hv[j,k] - (dt/dx) * (F_j12c[j,k] - F_j12c[j-1,k]) - ((dt/dy) * (G_k12c[j,k] - G_k12c[j,k-1]))
 
         #Reflektierende Randbedingungen
-        h = reflektierender_block(Nx,Ny, h)
-        hu = reflektierender_block(Nx,Ny, hu)
-        hv = reflektierender_block(Nx,Ny, hv)
+        h = reflektierender_block(h)
+        hu = reflektierender_block(hu)
+        hv = reflektierender_block(hv)
         u = hu/h
         v = hv/h
         v1 = np.append(v1, [np.amax(h)])
@@ -158,31 +157,20 @@ def erhaltungsschema_2D(CFL, Nx, hh, ht, darstellung):
         
     return h, hu, hv, v1, t1
 
-def maccormack(CFL, Nx, hh, ht, darstellung):
-    Ny = Nx
+def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
     x = np.linspace(0, 10, Nx)
     y = np.linspace(0, 10, Ny)
 
     dx = x[1] - x[0]
     dy = y[1] - y[0]
 
-   # Initialisierung der Arrays
-    h = np.zeros((Nx, Ny), dtype = np.double)
-    hu = np.zeros((Nx, Ny), dtype = np.double)
-    hv = np.zeros((Nx, Ny), dtype = np.double)
-
-    # Anfangsbedingungen
-    # hv und hu sind 0, da u und v 0 sind
-    for j in range(Nx):
-        for k in range(Ny):
-            if (4 <= x[j] <= 6) and (4 <= y[k] <= 6):
-                h[j,k] = hh
-            else:
-                h[j,k] = ht
 
     # Berechnung der Zeit
     z = 0
-    tmax = 5
+    if aufgabe == 3.2:
+        tmax = 5
+    if aufgabe == 3.3:
+        tmax = 5 * 3600
 
 
     # Matrizen Berechnen der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
@@ -227,7 +215,11 @@ def maccormack(CFL, Nx, hh, ht, darstellung):
         print(dt)
 
         z += dt
-        
+
+
+        S_b = f * hv
+        S_c = -f * hu
+
         # Berechnung der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
         for j in range(0, Nx):
             for k in range(0, Ny):
@@ -241,8 +233,8 @@ def maccormack(CFL, Nx, hh, ht, darstellung):
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
                 h_12[j,k]  = h[j,k]   - (dt/dx) * (Fa[j+1,k] - Fa[j,k]) - ((dt/dy) * (Ga[j,k+1] - Ga[j,k])) # Quelle: TUT
-                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) # + dt * S(u)
-                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k]))
+                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * S_b)
+                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * S_c)
 
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
@@ -257,14 +249,19 @@ def maccormack(CFL, Nx, hh, ht, darstellung):
         for j in range(1, Nx-1):
             for k in range(1, Ny-1):
                 h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
-                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1]))# +dt*0.5*S(u)
-                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1]))
+                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*S_b)
+                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*S_c)
 
-
+        if aufgabe == 3.2:
         #Reflektierende Randbedingungen
-        h = reflektierender_block(Nx,Ny, h)
-        hu = reflektierender_block(Nx,Ny, hu)
-        hv = reflektierender_block(Nx,Ny, hv)
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
+        if aufgabe == 3.3:
+            h = periodischer_block(h)
+            hu = periodischer_block(hu)
+            hv = periodischer_block(hv)
+
         u = hu/h
         v = hv/h
         v2 = np.append(v2, [np.amax(h)])
@@ -306,12 +303,15 @@ def maccormack(CFL, Nx, hh, ht, darstellung):
 # Irgendwo müssen noch Fehler in den Gleichungen sein, die Berechnung liefert negative Höhen, was nicht geht. Auch Höhen von größer als 2 sind am Anfang, das kann ja am Anfang auch nicht sein.
 
 if __name__ == "__main__":
-    
-    #Lax-Friedrich
-    h, hu, hv, v1, t1 = erhaltungsschema_2D(CFL=0.4, Nx = 50, hh= 2, ht= 1.5, darstellung= 2)
+    # Lax-Friedrich
+    h, hu, hv = anfangsbedingungen(hh=2, ht=1.5, Nx=50, Ny=50)
+    h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
     #Maccormack
-    h, hu, hv, v2, t2 = maccormack(CFL=0.4, Nx = 50, hh= 2, ht= 1.5, darstellung= 2)
-    
+    h, hu, hv = anfangsbedingungen(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
+    f = np.zeros([50, 50])
+    h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2)
+    # Aufgabenteil 3.3.1
+
     plt.style.use('seaborn')
 
     # Vergleich der Lösungen
