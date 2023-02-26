@@ -37,7 +37,7 @@ def anfangsbedingungen32(hh, ht, Nx, Ny):
                 h[j, k] = ht
     return h, hu, hv
 
-def anfangsbedingungen33():
+def anfangsbedingungen33(darstellung=1):
      # Anfangsparameter
     interval = 100e3
     Nx = 24
@@ -49,7 +49,7 @@ def anfangsbedingungen33():
     x = np.arange(0, interval * Nx, interval)
     y = np.arange(0, interval * Ny, interval)
 
-    [Y, _] = np.meshgrid(y, x)
+    [Y, X] = np.meshgrid(y, x)
     
     ######## Konstanten ########
     Ωe = 7.2921e-5 # Drehfrequenz der Erde in 1/s
@@ -61,15 +61,30 @@ def anfangsbedingungen33():
     θ_0 = np.deg2rad(latitude) # Breitengrad in Bogenmaß
     fc_0 = 2*Ωe*np.sin(θ_0) # Mittlere Zentrifugalkraft in 1/s^2
     f = fc_0 + (2*Ωe/Re)*(Y-y0) # Coriolisfaktor
-    ########### Anfangsbedingungen ##############
-    W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
-    W += np.random.uniform(1, 5, size=W.shape);
+    
+    
+    if darstellung==1:
+        #Barotropische Instabilität
+        W = 10000 - 500 * np.tanh(3e-3 * (Y - y0))
+        W += np.random.uniform(1, 5, size=W.shape);
+        B = np.zeros((Nx, Ny), dtype=np.double)
+        
+    elif darstellung==2:   
+        #Rossby Wellen in der nördlichen Hemisphäre
+        westwind = 30
+        W = 10000 + (westwind/g)*f*(Y-y0)
+        
+        sigma_x = 5*dx
+        sigma_y = 5*dy
+
+        B = 4000*np.exp(-0.5*((X-10000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
+    
     
     [dWdx, dWdy] = np.gradient(W, *[dy, dx])
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
     # Initialisierung der Arrays
-    h = W
+    h = W-B
     hu = h*u
     hv = h*v 
 
@@ -259,8 +274,16 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
 
         z += dt
 
-        S_b = -f * hv
-        S_c = f * hu
+        if aufgabe == 3.2:
+            S_b = -f * hv
+            S_c = f * hu
+        elif aufgabe == 3.3:
+            # S_b = -g*h*dBdx - f * hv
+            # S_c = -g*h*dbdx - f * hu
+            
+            S_b = - f * hv
+            S_c = - f * hu
+        
         # Berechnung der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
         for j in range(0, Nx):
             for k in range(0, Ny):
