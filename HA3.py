@@ -18,7 +18,7 @@ def reflektierender_block(h):
     h[-1,:] = h[-2,:]
     return h
 
-def anfangsbedingungen(hh, ht, Nx, Ny):
+def anfangsbedingungen32(hh, ht, Nx, Ny):
     x = np.linspace(0, 10, Nx)
     y = np.linspace(0, 10, Ny)
     # Initialisierung der Arrays
@@ -35,6 +35,44 @@ def anfangsbedingungen(hh, ht, Nx, Ny):
             else:
                 h[j, k] = ht
     return h, hu, hv
+
+def anfangsbedingungen33():
+     # Anfangsparameter
+    interval = 100e3
+    Nx = 24
+    Ny = 60
+    
+    dx = interval
+    dy = dx
+
+    x = np.arange(0, interval * Nx, interval)
+    y = np.arange(0, interval * Ny, interval)
+
+    [Y, _] = np.meshgrid(y, x)
+    
+    ######## Konstanten ########
+    Ωe = 7.2921e-5 # Drehfrequenz der Erde in 1/s
+    Re = 6371e3 # Erdradius in m
+    y0 = 3e6 # Breitengrad in Grad
+    
+    ########### Coriolisfaktor ##############
+    latitude = 35
+    θ_0 = np.deg2rad(latitude) # Breitengrad in Bogenmaß
+    fc_0 = 2*Ωe*np.sin(θ_0) # Mittlere Zentrifugalkraft in 1/s^2
+    f = fc_0 + (2*Ωe/Re)*(Y-y0) # Coriolisfaktor
+    ########### Anfangsbedingungen ##############
+    W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
+    W += np.random.uniform(1, 5, size=W.shape);
+    
+    [dWdx, dWdy] = np.gradient(W, *[dy, dx])
+    u = (-g/f)*dWdy
+    v = (g/f)*dWdx
+    # Initialisierung der Arrays
+    h = W
+    hu = h*u
+    hv = h*v 
+
+    return h, hu, hv, f
 
 def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
     x = np.linspace(0, 10, Nx)
@@ -158,8 +196,14 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
     return h, hu, hv, v1, t1
 
 def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
-    x = np.linspace(0, 10, Nx)
-    y = np.linspace(0, 10, Ny)
+    if (aufgabe == 3.2):
+        x = np.linspace(0, 10, Nx)
+        y = np.linspace(0, 10, Ny)
+    elif(aufgabe == 3.3):
+        interval = 100e3
+        x = np.arange(0, interval * Nx, interval)
+        y = np.arange(0, interval * Ny, interval)
+
 
     dx = x[1] - x[0]
     dy = y[1] - y[0]
@@ -198,7 +242,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         fig = plt.figure(figsize=(10,10))
     if darstellung == 2:
         fig = plt.figure(figsize=(20,10))
-        ax_contour = fig.add_subplot(111,frameon = False)
+        ax_contour = fig.add_subplot(111, frameon=False)
         plt.show(block= False)
     
     while z < tmax:
@@ -217,8 +261,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         z += dt
 
 
-        S_b = f * hv
-        S_c = -f * hu
+        S_b = -f * hv
+        S_c = f * hu
 
         # Berechnung der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
         for j in range(0, Nx):
@@ -233,8 +277,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
                 h_12[j,k]  = h[j,k]   - (dt/dx) * (Fa[j+1,k] - Fa[j,k]) - ((dt/dy) * (Ga[j,k+1] - Ga[j,k])) # Quelle: TUT
-                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * S_b)
-                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * S_c)
+                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * S_b[j, k])
+                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * S_c[j, k])
 
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
@@ -249,8 +293,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         for j in range(1, Nx-1):
             for k in range(1, Ny-1):
                 h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
-                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*S_b)
-                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*S_c)
+                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*S_b[j, k])
+                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*S_c[j, k])
 
         if aufgabe == 3.2:
         #Reflektierende Randbedingungen
@@ -258,9 +302,9 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
             hu = reflektierender_block(hu)
             hv = reflektierender_block(hv)
         if aufgabe == 3.3:
-            h = periodischer_block(h)
-            hu = periodischer_block(hu)
-            hv = periodischer_block(hv)
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
 
         u = hu/h
         v = hv/h
@@ -268,7 +312,10 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         t2 = np.append(v2, [z])
 
         # #create a meshgrid
-        X,Y = np.meshgrid(x,y)
+        if (aufgabe==3.2):
+            X,Y = np.meshgrid(x,y)
+        elif (aufgabe==3.3):
+            Y,X = np.meshgrid(y,x)
 
         if darstellung == 3:
             #plot the surface in 3D
@@ -288,11 +335,13 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
         if darstellung == 2:
             ax_contour.cla()
             ax_contour.set_title('Höhenverlauf')
-            contour = ax_contour.contourf(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap='jet')
+            ax_contour.set_xlim(0, 240e4)
+            ax_contour.set_ylim(0, 600e4)
+
+            contour = ax_contour.contourf(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
             cb = fig.colorbar(contour, ax=ax_contour)
             # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
-            ax_contour.quiver(X, Y, v, u)
-            ax_contour.set_aspect('equal')
+            ax_contour.quiver(X, Y, u, v)
 
             plt.draw()
             plt.pause(0.01)
@@ -303,25 +352,27 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
 # Irgendwo müssen noch Fehler in den Gleichungen sein, die Berechnung liefert negative Höhen, was nicht geht. Auch Höhen von größer als 2 sind am Anfang, das kann ja am Anfang auch nicht sein.
 
 if __name__ == "__main__":
-    # Lax-Friedrich
-    h, hu, hv = anfangsbedingungen(hh=2, ht=1.5, Nx=50, Ny=50)
-    h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
-    #Maccormack
-    h, hu, hv = anfangsbedingungen(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
-    f = np.zeros([50, 50])
-    h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2)
+    # # Lax-Friedrich
+    # h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
+    # h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
+    # #Maccormack
+    # h, hu, hv = anfangsbedingungen32(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
+    # f = np.zeros([50, 50])
+    # h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2)
     # Aufgabenteil 3.3.1
+    h, hu, hv, f = anfangsbedingungen33()
+    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3)
 
     plt.style.use('seaborn')
 
-    # Vergleich der Lösungen
-    plt.plot(t2, v2, label='MacCormack')
-    plt.plot(t1, v1, label='Lax-Friedrich')
-    plt.title('MacCormack vs Lax-Friedrich')
-    plt.xlabel('Zeit (s)')
-    plt.ylabel('Höhe (m)')
-    plt.legend()
-    plt.show()
+    # # Vergleich der Lösungen
+    # plt.plot(t2, v2, label='MacCormack')
+    # plt.plot(t1, v1, label='Lax-Friedrich')
+    # plt.title('MacCormack vs Lax-Friedrich')
+    # plt.xlabel('Zeit (s)')
+    # plt.ylabel('Höhe (m)')
+    # plt.legend()
+    # plt.show()
 
 
 
