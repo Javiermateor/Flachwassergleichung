@@ -80,15 +80,20 @@ def anfangsbedingungen33(darstellung=1):
         B = 4000*np.exp(-0.5*((X-10000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
     
     
-    [dWdx, dWdy] = np.gradient(W, *[dy, dx])
+    [dWdx, dWdy] = np.gradient(W+B, *[dy, dx])
+    [dBdx, dBdy] = np.gradient(B, *[dy, dx])
+    
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
     # Initialisierung der Arrays
     h = W-B
     hu = h*u
     hv = h*v 
-
-    return h, hu, hv, f
+    
+    if darstellung == 1:
+        return h, hu, hv, f
+    elif(darstellung == 2):
+        return h, hu, hv, f, dBdx, dBdy
 
 def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
     x = np.linspace(0, 10, Nx)
@@ -211,7 +216,7 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
         
     return h, hu, hv, v1, t1
 
-def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
+def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
     if (aufgabe == 3.2):
         x = np.linspace(0, 10, Nx)
         y = np.linspace(0, 10, Ny)
@@ -274,15 +279,10 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe):
 
         z += dt
 
-        if aufgabe == 3.2:
-            S_b = -f * hv
-            S_c = f * hu
-        elif aufgabe == 3.3:
-            # S_b = -g*h*dBdx - f * hv
-            # S_c = -g*h*dbdx - f * hu
+       
+        S_b = -g*h*dBdx - f * hv
+        S_c = -g*h*dBdy - f * hu
             
-            S_b = - f * hv
-            S_c = - f * hu
         
         # Berechnung der F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
         for j in range(0, Nx):
@@ -374,13 +374,19 @@ if __name__ == "__main__":
     # # Lax-Friedrich
     # h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
     # h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
+    
     # #Maccormack
     # h, hu, hv = anfangsbedingungen32(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
     # f = np.zeros([50, 50])
     # h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2)
-    # Aufgabenteil 3.3.1
-    h, hu, hv, f = anfangsbedingungen33()
-    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3)
+    
+    # # Barotropische Instabilität
+    # h, hu, hv, f = anfangsbedingungen33()
+    # h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3)
+    
+    # Rossby Wellen in der nördlichen Hemisphäre
+    h, hu, hv, f, dBdx, dBdy = anfangsbedingungen33(darstellung = 2)
+    h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3, dBdx = dBdx, dBdy = dBdy)
 
     plt.style.use('seaborn')
 
