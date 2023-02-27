@@ -37,12 +37,10 @@ def anfangsbedingungen32(hh, ht, Nx, Ny):
                 h[j, k] = ht
     return h, hu, hv
 
-def anfangsbedingungen33(darstellung=1):
+def anfangsbedingungen33(Nx,Ny,darstellung=1):
+    
      # Anfangsparameter
     interval = 100e3
-    Nx = 24
-    Ny = 60
-    
     dx = interval
     dy = dx
 
@@ -66,7 +64,7 @@ def anfangsbedingungen33(darstellung=1):
     
     if darstellung == 1:
         #Barotropische Instabilität
-        W = 10000 - 500 * np.tanh(3e-3 * (Y - y0))
+        W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
         W += np.random.uniform(1, 5, size=W.shape);
         B = np.zeros((Nx, Ny), dtype=np.double)
         
@@ -80,13 +78,14 @@ def anfangsbedingungen33(darstellung=1):
         
         B = 4000*np.exp(-0.5*((X-10000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
     
-    [dWdx, dWdy] = np.gradient(W+B, *[dy, dx])
+    [dWdx, dWdy] = np.gradient(W, *[dy, dx])
     [dBdx, dBdy] = np.gradient(B, *[dy, dx])
     
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
     
     # Initialisierung der Arrays
+    
     h = W-B
     hu = h*u
     hv = h*v 
@@ -223,7 +222,7 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
         
     return h, hu, hv, v1, t1
 
-def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
+def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy=0):
     
     #Diskretisierung des Gebietes
     if (aufgabe == 3.2):
@@ -242,7 +241,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
     if aufgabe == 3.2:
         tmax = 5
     if aufgabe == 3.3:
-        tmax = 5 * 3600
+        tmax = 60 * 3600
 
 
     # Initialisierung der Matrizen F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
@@ -253,6 +252,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
     Ga = np.zeros((Nx, Ny), dtype = np.double)
     Gb = np.zeros((Nx, Ny), dtype = np.double)
     Gc = np.zeros((Nx, Ny), dtype = np.double)
+    Sb = np.zeros((Nx, Ny), dtype = np.double)  
+    Sc = np.zeros((Nx, Ny), dtype = np.double)
     h_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     hu_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     hv_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
@@ -262,6 +263,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
     Ga_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     Gb_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     Gc_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
+    Sb_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
+    Sc_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     v2 = np.zeros(1)
     t2 = np.zeros(1)
     v2[0] =  np.amax(h)
@@ -275,8 +278,12 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
         ax_contour = fig.add_subplot(111, frameon=False)
         plt.show(block= False)
     
+    i=1
     #MacCormack Verfahren 
     while z < tmax:
+        
+        print('Schritt: ', i)
+
         
         # Berechnung der Eigenwerte 
         EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
@@ -288,42 +295,64 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
         dt = CFL * min(dx,dy)/(max(np.amax(EWX), np.amax(EWY))) # Quelle: S. 13 (1.58)
         z += dt
 
-       #Quellterm; Quelle: Aufgabestellung
-        S_b = -g*h*dBdx - f * hv
-        S_c = -g*h*dBdy - f * hu
-            
-        
-        # Berechnung von F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
+        # Berechnung von F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c (Flussvektoren)
         for j in range(0, Nx):
             for k in range(0, Ny):
                 Fa[j,k] = hu[j,k] # Quelle: S.4 (1.1)
                 Fb[j,k] = (hu[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
                 Fc[j,k] = (hu[j,k]*hv[j,k])/(h[j,k])
+                
                 Ga[j,k] = hv[j,k] # Quelle: S.4 (1.1)
                 Gb[j,k] = (hu[j,k]*hv[j,k])/(h[j,k])
                 Gc[j,k] = (hv[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
-
+                
+                if teil == 1:
+                    Sb[j,k] =  f[j,k] * hv[j,k]
+                    Sb[j,k] =  -f[j,k] * hu[j,k]
+                if teil == 2:
+                    Sb[j,k] = -g*h[j,k]*dBdx[j,k] + f[j,k] * hv[j,k]
+                    Sb[j,k] = -g*h[j,k]*dBdy[j,k] - f[j,k] * hu[j,k]
+        
+            
+        print(f'Fa:{Fa}')
+        print(f'Fb:{Fb}')
+        print(f'Fc:{Fc}')
+        print(f'Ga:{Ga}')
+        print(f'Gb:{Gb}')
+        print(f'Gc:{Gc}')
+        
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
                 h_12[j,k]  = h[j,k]   - (dt/dx) * (Fa[j+1,k] - Fa[j,k]) - ((dt/dy) * (Ga[j,k+1] - Ga[j,k])) # Quelle: TUT
-                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * S_b[j, k])
-                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * S_c[j, k])
-
-        for j in range(0, Nx-1):
-            for k in range(0, Ny-1):
+                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * Sb[j, k])
+                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * Sc[j, k])
+                
                 Fa_12[j,k] = hu_12[j,k] # Quelle: S.4 (1.1)
                 Fb_12[j,k] = (hu_12[j,k]**2)/(h_12[j,k]) + 0.5*g*(h_12[j,k]**2)
                 Fc_12[j,k] = (hu_12[j,k]*hv_12[j,k])/(h_12[j,k])
+                
                 Ga_12[j,k] = hv_12[j,k] # Quelle: S.4 (1.1)
                 Gb_12[j,k] = (hu_12[j,k]*hv_12[j,k])/(h_12[j,k])
                 Gc_12[j,k] = (hv_12[j,k]**2)/(h_12[j,k]) + 0.5*g*(h_12[j,k]**2)
+                
+                if teil == 1:
+                    Sb_12[j,k] = f[j,k] * hv_12[j,k] # Quelle: Aufgabestellung
+                    Sc_12[j,k] = - f[j,k] * hu_12[j,k]
+                if teil == 2:
+                    Sb_12[j,k] = -g*h_12[j,k]*dBdx[j,k] + f[j,k] * hv_12[j,k]
+                    Sc_12[j,k] = -g*h_12[j,k]*dBdy[j,k] - f[j,k] * hu_12[j,k]
+                
+        print(f'h_12:{h_12}')
+        print(f'hu_12:{hu_12}')
+        print(f'hv_12:{hv_12}')
+        
 
         # Berechnung der h, hu und hv
         for j in range(1, Nx-1):
             for k in range(1, Ny-1):
                 h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
-                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*S_b[j, k])
-                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*S_c[j, k])
+                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*Sb_12[j, k])
+                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*Sc_12[j, k])
 
         #Randbedingungen je nach Aufgabe
         if aufgabe == 3.2:
@@ -335,6 +364,13 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
             h = reflektierender_block(h)
             hu = reflektierender_block(hu)
             hv = reflektierender_block(hv)
+        
+        # print("Schritt: ", i)
+        # print("Zeit: ", z)
+        # print("h: ", h)
+        # print("hu: ", hu)
+        # print("hv: ", hv)
+        # print("")
 
         u = hu/h
         v = hv/h
@@ -367,40 +403,42 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,dBdx=0, dBdy=0):
         if darstellung == 2:
             ax_contour.cla()
             ax_contour.set_title('Höhenverlauf')
-            ax_contour.set_xlim(0, 240e4)
-            ax_contour.set_ylim(0, 600e4)
+            # ax_contour.set_xlim(0, 240e4)
+            # ax_contour.set_ylim(0, 600e4)
 
             contour = ax_contour.contourf(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
             cb = fig.colorbar(contour, ax=ax_contour)
             # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
             ax_contour.quiver(X, Y, u, v)
-
+            
+            # ax_contour.set_xticks(np.arange(0, 260e4, 20e4))
+            # ax_contour.set_xticklabels(np.arange(0, 26, 2))
+            # ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
+            
+            ax_contour.set_yticklabels(())
+            
             plt.draw()
             plt.pause(0.01)
             cb.remove()
+            
+            i+=1
     return h, hu, hv, v2, t2
 
 if __name__ == "__main__":
     
     plt.style.use('seaborn')
     
-    # Lax-Friedrich
-    h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
-    h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
+    # # Aufagabe 3.2
+    
+    # # Lax-Friedrich
+    # h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
+    # h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
     
     # #Maccormack
     # h, hu, hv = anfangsbedingungen32(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
     # f = np.zeros([50, 50])
     # h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2)
     
-    # # Barotropische Instabilität
-    # h, hu, hv, f = anfangsbedingungen33()
-    # h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3)
-    
-    # # Rossby Wellen in der nördlichen Hemisphäre
-    # h, hu, hv, f, dBdx, dBdy = anfangsbedingungen33(darstellung = 2)
-    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 24, Ny = 60,  darstellung= 2, aufgabe= 3.3, dBdx = dBdx, dBdy = dBdy)
-
     # # Vergleich der Lösungen
     # plt.plot(t2, v2, label='MacCormack')
     # plt.plot(t1, v1, label='Lax-Friedrich')
@@ -409,3 +447,18 @@ if __name__ == "__main__":
     # plt.ylabel('Höhe (m)')
     # plt.legend()
     # plt.show()
+    
+    # Aufgabe 3.3
+    
+    Nx,Ny = 26, 62
+    CFL = 0.45
+    
+    # 3.1: Barotropische Instabilität
+    
+    h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
+    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=1)
+    
+    # 3.2: Rossby Wellen in der nördlichen Hemisphäre
+    # h, hu, hv, f, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
+    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung = 2, aufgabe = 3.3, teil = 2, dBdx = dBdx, dBdy = dBdy)
+
