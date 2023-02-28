@@ -66,7 +66,7 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     if darstellung == 1:
         #Barotropische Instabilität
         W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
-        W += np.random.uniform(1, 5, size=W.shape);
+        # W += np.random.uniform(1, 5, size=W.shape);
         B = np.zeros((Nx, Ny), dtype=np.double)
         
     elif darstellung==2:   
@@ -281,7 +281,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
     
     i=1
     #MacCormack Verfahren 
-    while z < tmax:
+    while i < 5:
 
         
         # Berechnung der Eigenwerte 
@@ -298,20 +298,29 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         # Berechnung von F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c (Flussvektoren)
         for j in range(0, Nx):
             for k in range(0, Ny):
+                
                 Fa[j,k] = hu[j,k] # Quelle: S.4 (1.1)
                 Fb[j,k] = (hu[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
                 Fc[j,k] = (hu[j,k]*hv[j,k])/(h[j,k])
+                
+                # Fa[j,k] = h[j,k]*(hu[j,k]/h[j,k])   
+                # Fb[j,k] = hu[j,k]*(hu[j,k]/h[j,k])**2 + 0.5*g*(h[j,k]**2)
+                # Fc[j,k] = h[j,k]*(hu[j,k]/h[j,k])*(hv[j,k]/h[j,k]) 
                 
                 Ga[j,k] = hv[j,k] # Quelle: S.4 (1.1)
                 Gb[j,k] = (hu[j,k]*hv[j,k])/(h[j,k])
                 Gc[j,k] = (hv[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
                 
+                # Ga[j,k] = h[j,k]*(hv[j,k]/h[j,k])
+                # Gb[j,k] = h[j,k]*(hu[j,k]/h[j,k])*(hv[j,k]/h[j,k]) 
+                # Gc[j,k] = h[j,k]*(hv[j,k]/h[j,k])**2 + 0.5*g*(h[j,k]**2)
+                
                 if teil == 1:
                     Sb[j,k] =  (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
                     Sc[j,k] = -(f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
                 if teil == 2:
-                    Sb[j,k] = -g*(dBdx[j,k]*h[j,k]) + (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
-                    Sc[j,k] = -g*(dBdy[j,k]*h[j,k]) - (f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
+                    Sb[j,k] = -g*(h[j,k])*dBdx[j,k] + (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
+                    Sc[j,k] = -g*(h[j,k])*dBdy[j,k] - (f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
         
         
         for j in range(0, Nx-1):
@@ -332,8 +341,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                     Sb_12[j,k] = (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k]) # Quelle: Aufgabestellung
                     Sc_12[j,k] = -(f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
                 if teil == 2:
-                    Sb_12[j,k] = -g*(dBdx[j,k]*h_12[j,k]) + (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k])
-                    Sc_12[j,k] = -g*(dBdy[j,k]*h_12[j,k]) - (f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
+                    Sb_12[j,k] = -g*(h_12[j,k])*dBdx[j,k] + (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k])
+                    Sc_12[j,k] = -g*([j,k]*h[j,k])*dBdy[j,k] - (f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
         
 
         # Berechnung der h, hu und hv
@@ -462,7 +471,7 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    Nx,Ny = 26, 62
+    Nx,Ny = 12, 3
     CFL = 0.45
     
     # # 3.1: Barotropische Instabilität
