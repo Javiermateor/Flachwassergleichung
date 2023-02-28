@@ -41,6 +41,7 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     
      # Anfangsparameter
     interval = 100e3
+    
     dx = interval
     dy = dx
 
@@ -281,8 +282,6 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
     i=1
     #MacCormack Verfahren 
     while z < tmax:
-        
-        print('Schritt: ', i)
 
         
         # Berechnung der Eigenwerte 
@@ -294,6 +293,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 EWY = np.append(EWY,[hv[j,k]/h[j,k]-np.sqrt(g*h[j,k]), hv[j,k]/h[j,k]+np.sqrt(g*h[j,k])])
         dt = CFL * min(dx,dy)/(max(np.amax(EWX), np.amax(EWY))) # Quelle: S. 13 (1.58)
         z += dt
+        
 
         # Berechnung von F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c (Flussvektoren)
         for j in range(0, Nx):
@@ -307,19 +307,12 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 Gc[j,k] = (hv[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
                 
                 if teil == 1:
-                    Sb[j,k] =  f[j,k] * hv[j,k]
-                    Sb[j,k] =  -f[j,k] * hu[j,k]
+                    Sb[j,k] =  (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
+                    Sc[j,k] = -(f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
                 if teil == 2:
-                    Sb[j,k] = -g*h[j,k]*dBdx[j,k] + f[j,k] * hv[j,k]
-                    Sb[j,k] = -g*h[j,k]*dBdy[j,k] - f[j,k] * hu[j,k]
+                    Sb[j,k] = -g*(dBdx[j,k]*h[j,k]) + (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
+                    Sc[j,k] = -g*(dBdy[j,k]*h[j,k]) - (f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
         
-            
-        print(f'Fa:{Fa}')
-        print(f'Fb:{Fb}')
-        print(f'Fc:{Fc}')
-        print(f'Ga:{Ga}')
-        print(f'Gb:{Gb}')
-        print(f'Gc:{Gc}')
         
         for j in range(0, Nx-1):
             for k in range(0, Ny-1):
@@ -336,15 +329,11 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 Gc_12[j,k] = (hv_12[j,k]**2)/(h_12[j,k]) + 0.5*g*(h_12[j,k]**2)
                 
                 if teil == 1:
-                    Sb_12[j,k] = f[j,k] * hv_12[j,k] # Quelle: Aufgabestellung
-                    Sc_12[j,k] = - f[j,k] * hu_12[j,k]
+                    Sb_12[j,k] = (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k]) # Quelle: Aufgabestellung
+                    Sc_12[j,k] = -(f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
                 if teil == 2:
-                    Sb_12[j,k] = -g*h_12[j,k]*dBdx[j,k] + f[j,k] * hv_12[j,k]
-                    Sc_12[j,k] = -g*h_12[j,k]*dBdy[j,k] - f[j,k] * hu_12[j,k]
-                
-        print(f'h_12:{h_12}')
-        print(f'hu_12:{hu_12}')
-        print(f'hv_12:{hv_12}')
+                    Sb_12[j,k] = -g*(dBdx[j,k]*h_12[j,k]) + (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k])
+                    Sc_12[j,k] = -g*(dBdy[j,k]*h_12[j,k]) - (f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
         
 
         # Berechnung der h, hu und hv
@@ -353,6 +342,35 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
                 hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*Sb_12[j, k])
                 hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*Sc_12[j, k])
+                
+                
+        print("Schritt: ", i)
+        print(f'Zeitschritt {dt} | Zeitschritt Tutorium = 140.2113615804145') 
+        
+        print('------------------------------------------------')
+        print(f'Flussvektoren nach {i} Zeitschritt:')
+        print(f'Fa:\n{Fa}')
+        print(f'Fb:\n{Fb}')
+        print(f'Fc:\n{Fc}')
+        print(f'Ga:\n{Ga}')
+        print(f'Gb:\n{Gb}')
+        print(f'Gc:\n{Gc}')
+        
+        print('------------------------------------------------')
+        print(f'Numerische Höhe und Geschwindigkeiten nach {i} Zeitschritt:')
+        print(f'h_12: \n{h}')
+        print(f'hu_12: \n{hu}')
+        print(f'hv_12: \n{hv}')
+        print("")
+        
+        print('-------------------------------------------------')
+    
+        print(f'Höhe und Geschwindigkeiten nach {i} Zeitschritt:')
+        print(f'h: \n{h}')
+        print(f'hu: \n{hu}')
+        print(f'hv: \n{hv}')
+        print("")
+
 
         #Randbedingungen je nach Aufgabe
         if aufgabe == 3.2:
@@ -364,13 +382,6 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             h = reflektierender_block(h)
             hu = reflektierender_block(hu)
             hv = reflektierender_block(hv)
-        
-        # print("Schritt: ", i)
-        # print("Zeit: ", z)
-        # print("h: ", h)
-        # print("hu: ", hu)
-        # print("hv: ", hv)
-        # print("")
 
         u = hu/h
         v = hv/h
@@ -411,10 +422,11 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
             ax_contour.quiver(X, Y, u, v)
             
-            # ax_contour.set_xticks(np.arange(0, 260e4, 20e4))
-            # ax_contour.set_xticklabels(np.arange(0, 26, 2))
-            # ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
             
+            #Plot Einstellungen
+            ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
+            ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
             ax_contour.set_yticklabels(())
             
             plt.draw()
@@ -453,9 +465,15 @@ if __name__ == "__main__":
     Nx,Ny = 26, 62
     CFL = 0.45
     
-    # 3.1: Barotropische Instabilität
+    # # 3.1: Barotropische Instabilität
     
     h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
+    
+    # # print(f'h: {h.shape} \n{h}\n ')
+    # # print(f'hu: {hu.shape} \n{hu}\n ')
+    # # print(f'hv: {hv.shape} \n{hv}\n ')
+    # # print(f'f:{f.shape} \n{f} ')
+    
     h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=1)
     
     # 3.2: Rossby Wellen in der nördlichen Hemisphäre
