@@ -6,17 +6,17 @@ from IPython import display
 #Randbedingungen Funktionen
 
 def periodischer_block(h):
-    h[:,0] = h[:,-2]
-    h[:,-1] = h[:,1]
     h[0,:] = h[-2,:]
     h[-1,:] = h[1,:]
+    h[:,0] = h[:,1] # Reflektierend
+    h[:,-1] = h[:,-2] # reflektierend
     return h
 
 def reflektierender_block(h):
-    h[:,0] = h[:,1]
-    h[:,-1] = h[:,-2]
     h[0,:] = h[1,:]
     h[-1,:] = h[-2,:]
+    h[:,0] = h[:,1]
+    h[:,-1] = h[:,-2]
     return h
 
 #Anfangsbedingungen Funktionen für Aufgaben 3.2 und 3.3
@@ -66,18 +66,19 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     if darstellung == 1:
         #Barotropische Instabilität
         W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
-        W += np.random.randint(1, 5, size=W.shape)
+        R = np.random.randint(-1, 6, size=W.shape)
+        W = W+R
         B = np.zeros((Nx, Ny), dtype=np.double)
         
     elif darstellung==2:   
         #Rossby Wellen in der nördlichen Hemisphäre
         westwind = 30
-        W = 10000 + (westwind/g)*f*(Y-y0)
+        W = 10000 + (westwind/g)*fc_0*(Y-y0)
         
-        sigma_x = 5*dx
-        sigma_y = 5*dy
+        sigma_x = 10*dx
+        sigma_y = 10*dy
         
-        B = 4000*np.exp(-0.5*((X-10000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
+        B = 2000*np.exp(-0.5*((X-12000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
     
     [dWdx, dWdy] = np.gradient(W, *[dy, dx])
     [dBdx, dBdy] = np.gradient(B, *[dy, dx])
@@ -363,9 +364,9 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             hv = reflektierender_block(hv)
             
         if aufgabe == 3.3:
-            h = reflektierender_block(h)
-            hu = reflektierender_block(hu)
-            hv = reflektierender_block(hv)
+            h = periodischer_block(h)
+            hu = periodischer_block(hu)
+            hv = periodischer_block(hv)
 
         print("Schritt: ", i)
         print(f'Zeitschritt {dt} | Zeitschritt Tutorium = 140.2113615804145') 
