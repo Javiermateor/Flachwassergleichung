@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.constants import g
+g = 9.81
 from IPython import display
 
 #Randbedingungen Funktionen
@@ -66,7 +66,7 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     if darstellung == 1:
         #Barotropische Instabilität
         W = 10000 - 500 * np.tanh(3e-6 * (Y - y0))
-        # W += np.random.uniform(1, 5, size=W.shape);
+        W += np.random.randint(1, 5, size=W.shape)
         B = np.zeros((Nx, Ny), dtype=np.double)
         
     elif darstellung==2:   
@@ -84,6 +84,10 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
+
+    print(dWdx)
+    print("--------------")
+    print(dWdy)
     
     # Initialisierung der Arrays
     
@@ -278,10 +282,10 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         fig = plt.figure(figsize=(20,10))
         ax_contour = fig.add_subplot(111, frameon=False)
         plt.show(block= False)
-    
-    i=1
+
+    i = 0
     #MacCormack Verfahren 
-    while i < 5:
+    while z < tmax:
 
         
         # Berechnung der Eigenwerte 
@@ -316,8 +320,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 # Gc[j,k] = h[j,k]*(hv[j,k]/h[j,k])**2 + 0.5*g*(h[j,k]**2)
                 
                 if teil == 1:
-                    Sb[j,k] =  (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
-                    Sc[j,k] = -(f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
+                    Sb[j,k] =  (f[j,k] * hv[j,k])
+                    Sc[j,k] = -(f[j,k] * hu[j,k])
                 if teil == 2:
                     Sb[j,k] = -g*(h[j,k])*dBdx[j,k] + (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
                     Sc[j,k] = -g*(h[j,k])*dBdy[j,k] - (f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
@@ -338,8 +342,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 Gc_12[j,k] = (hv_12[j,k]**2)/(h_12[j,k]) + 0.5*g*(h_12[j,k]**2)
                 
                 if teil == 1:
-                    Sb_12[j,k] = (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k]) # Quelle: Aufgabestellung
-                    Sc_12[j,k] = -(f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
+                    Sb_12[j,k] = (f[j,k] * hv_12[j,k]) # Quelle: Aufgabestellung
+                    Sc_12[j,k] = -(f[j,k] * hu_12[j,k])
                 if teil == 2:
                     Sb_12[j,k] = -g*(h_12[j,k])*dBdx[j,k] + (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k])
                     Sc_12[j,k] = -g*([j,k]*h[j,k])*dBdy[j,k] - (f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
@@ -351,8 +355,18 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
                 h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
                 hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*Sb_12[j, k])
                 hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*Sc_12[j, k])
-                
-                
+
+        #Randbedingungen je nach Aufgabe
+        if aufgabe == 3.2:
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
+            
+        if aufgabe == 3.3:
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
+
         print("Schritt: ", i)
         print(f'Zeitschritt {dt} | Zeitschritt Tutorium = 140.2113615804145') 
         
@@ -379,18 +393,6 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         print(f'hu: \n{hu}')
         print(f'hv: \n{hv}')
         print("")
-
-
-        #Randbedingungen je nach Aufgabe
-        if aufgabe == 3.2:
-            h = reflektierender_block(h)
-            hu = reflektierender_block(hu)
-            hv = reflektierender_block(hv)
-            
-        if aufgabe == 3.3:
-            h = reflektierender_block(h)
-            hu = reflektierender_block(hu)
-            hv = reflektierender_block(hv)
 
         u = hu/h
         v = hv/h
@@ -433,10 +435,10 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             
             
             #Plot Einstellungen
-            ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
-            ax_contour.set_xticklabels(np.arange(0, Nx, 2))
-            ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
-            ax_contour.set_yticklabels(())
+            # ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
+            # ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            # ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
+            # ax_contour.set_yticklabels(())
             
             plt.draw()
             plt.pause(0.01)
@@ -471,12 +473,22 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    Nx,Ny = 12, 3
+    Nx,Ny = 24, 60
     CFL = 0.45
     
     # # 3.1: Barotropische Instabilität
     
     h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
+    np.set_printoptions(precision=16)
+    print(f)
+    print("--------------")
+    print(h)
+    print("--------------")
+    print(hu)
+    print("--------------")
+    print(hv)
+    print("--------------")
+    print("--------------")
     
     # # print(f'h: {h.shape} \n{h}\n ')
     # # print(f'hu: {hu.shape} \n{hu}\n ')
