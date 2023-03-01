@@ -19,6 +19,27 @@ def reflektierender_block(h):
     h[:,-1] = h[:,-2]
     return h
 
+def randbedingungen_h(h):
+    #x-Richtung
+    h[0,:]=h[-2,:] #periodisch x = 0
+    h[-1,:]=h[1,:] #periodisch x am Rand 
+    
+    # #y-Richtung
+    # h[:,0] = 0 #Dirichlet y = 0
+    # h[:,-1] = 0 #Dirichlet y am Rand
+    return h
+    
+def randbedingungen_hu(h):
+    #x-Richtung
+    h[0,:]=h[-2,:] #periodisch x = 0
+    h[-1,:]=h[1,:] #periodisch x am Rand 
+    
+    #y-Richtung
+    h[:,0] = 0 #Dirichlet y = 0
+    h[:,-1] = 0 #Dirichlet y am Rand
+    
+    
+    
 #Anfangsbedingungen Funktionen für Aufgaben 3.2 und 3.3
 
 def anfangsbedingungen32(hh, ht, Nx, Ny):
@@ -86,9 +107,9 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
 
-    print(dWdx)
-    print("--------------")
-    print(dWdy)
+    # print(dWdx)
+    # print("--------------")
+    # print(dWdy)
     
     # Initialisierung der Arrays
     
@@ -180,10 +201,12 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
                 hu[j,k] = hu[j,k] - (dt/dx) * (F_j12b[j,k] - F_j12b[j-1,k]) - ((dt/dy) * (G_k12b[j,k] - G_k12b[j,k-1])) # + dt * S(U) für 3.3
                 hv[j,k] = hv[j,k] - (dt/dx) * (F_j12c[j,k] - F_j12c[j-1,k]) - ((dt/dy) * (G_k12c[j,k] - G_k12c[j,k-1]))
 
-        #Randbedingungen
+        # #Randbedingungen
         h = reflektierender_block(h)
         hu = reflektierender_block(hu)
         hv = reflektierender_block(hv)
+        
+        # Berechnung der Geschwindigkeiten
         
         u = hu/h
         v = hv/h
@@ -284,11 +307,10 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         ax_contour = fig.add_subplot(111, frameon=False)
         plt.show(block= False)
 
-    i = 0
+    i = 1
     #MacCormack Verfahren 
     while z < tmax:
 
-        
         # Berechnung der Eigenwerte 
         EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
         EWY = np.array([hv[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hv[0,0]/h[0,0]+np.sqrt(g*h[0,0])])
@@ -299,63 +321,57 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         dt = CFL * min(dx,dy)/(max(np.amax(EWX), np.amax(EWY))) # Quelle: S. 13 (1.58)
         z += dt
         
+        # Berechnung von Flussvektoren in der Mitte des Zeitschritts
+        
+        #x-Richtung
+        Fa[:Nx,:Ny] = hu[:Nx,:Ny]
+        Fb[:Nx,:Ny] = (hu[:Nx,:Ny]**2)/(h[:Nx,:Ny]) + 0.5*g*(h[:Nx,:Ny]**2)
+        Fc[:Nx,:Ny] = (hu[:Nx,:Ny]*hv[:Nx,:Ny])/(h[:Nx,:Ny])
+        
+        #y-Richtung
+        Ga[:Nx,:Ny] = hv[:Nx,:Ny]
+        Gb[:Nx,:Ny] = (hu[:Nx,:Ny]*hv[:Nx,:Ny])/(h[:Nx,:Ny])
+        Gc[:Nx,:Ny] = (hv[:Nx,:Ny]**2)/(h[:Nx,:Ny]) + 0.5*g*(h[:Nx,:Ny]**2)
+        
+        #Quellterm
+        if teil == 1:
+            Sb[:Nx,:Ny] =  (f[:Nx,:Ny] * hv[:Nx,:Ny])
+            Sc[:Nx,:Ny] = -(f[:Nx,:Ny] * hu[:Nx,:Ny])
+        if teil == 2:   
+            
+            Sb[:Nx,:Ny] = -g*(h[:Nx,:Ny])*dBdx[:Nx,:Ny] + (f[:Nx,:Ny] * h[:Nx,:Ny] * hv[:Nx,:Ny]/h[:Nx,:Ny])
+            Sc[:Nx,:Ny] = -g*(h[:Nx,:Ny])*dBdy[:Nx,:Ny] - (f[:Nx,:Ny] *  h[:Nx,:Ny] * hu[:Nx,:Ny]/h[:Nx,:Ny])
+        
+        # Berechnung von Flussvektoren an den Randzellen
+        
+        h_12[0:Nx-1, 0:Ny-1] = h[0:Nx-1, 0:Ny-1] - (dt/dx) * (Fa[1:Nx, 0:Ny-1] - Fa[0:Nx-1, 0:Ny-1]) - ((dt/dy) * (Ga[0:Nx-1, 1:Ny] - Ga[0:Nx-1, 0:Ny-1])) # Quelle: TUT
+        hu_12[0:Nx-1, 0:Ny-1] = hu[0:Nx-1, 0:Ny-1] - (dt/dx) * (Fb[1:Nx, 0:Ny-1] - Fb[0:Nx-1, 0:Ny-1]) - ((dt/dy) * (Gb[0:Nx-1, 1:Ny] - Gb[0:Nx-1, 0:Ny-1])) + (dt * Sb[0:Nx-1, 0:Ny-1])
+        hv_12[0:Nx-1, 0:Ny-1] = hv[0:Nx-1, 0:Ny-1] - (dt/dx) * (Fc[1:Nx, 0:Ny-1] - Fc[0:Nx-1, 0:Ny-1]) - ((dt/dy) * (Gc[0:Nx-1, 1:Ny] - Gc[0:Nx-1, 0:Ny-1])) + (dt * Sc[0:Nx-1, 0:Ny-1])
+        
+        # x-Richtung
+        Fa_12[0:Nx-1, 0:Ny-1] = hu_12[0:Nx-1, 0:Ny-1] # Quelle: S.4 (1.1)
+        Fb_12[0:Nx-1, 0:Ny-1] = (hu_12[0:Nx-1, 0:Ny-1]**2)/(h_12[0:Nx-1, 0:Ny-1]) + 0.5*g*(h_12[0:Nx-1, 0:Ny-1]**2)
+        Fc_12[0:Nx-1, 0:Ny-1] = (hu_12[0:Nx-1, 0:Ny-1]*hv_12[0:Nx-1, 0:Ny-1])/(h_12[0:Nx-1, 0:Ny-1])
+        
+        # y-Richtung
+        Ga_12[0:Nx-1, 0:Ny-1] = hv_12[0:Nx-1, 0:Ny-1] # Quelle: S.4 (1.1)
+        Gb_12[0:Nx-1, 0:Ny-1] = (hu_12[0:Nx-1, 0:Ny-1]*hv_12[0:Nx-1, 0:Ny-1])/(h_12[0:Nx-1, 0:Ny-1])
+        Gc_12[0:Nx-1, 0:Ny-1] = (hv_12[0:Nx-1, 0:Ny-1]**2)/(h_12[0:Nx-1, 0:Ny-1]) + 0.5*g*(h_12[0:Nx-1, 0:Ny-1]**2)
+        
+        # Quellterm
+        if teil == 1:
+            Sb_12[0:Nx-1, 0:Ny-1] = (f[0:Nx-1, 0:Ny-1] * hv_12[0:Nx-1, 0:Ny-1])
+            Sc_12[0:Nx-1, 0:Ny-1] = -(f[0:Nx-1, 0:Ny-1] * hu_12[0:Nx-1, 0:Ny-1])
+        if teil == 2:
+            Sb_12[0:Nx-1, 0:Ny-1] = -g*(h_12[0:Nx-1, 0:Ny-1])*dBdx[0:Nx-1, 0:Ny-1] + (f[0:Nx-1, 0:Ny-1] * h_12[0:Nx-1, 0:Ny-1] * hv_12[0:Nx-1, 0:Ny-1]/h_12[0:Nx-1, 0:Ny-1])
+            Sc_12[0:Nx-1, 0:Ny-1] = -g*(h_12[0:Nx-1, 0:Ny-1])*dBdy[0:Nx-1, 0:Ny-1] - (f[0:Nx-1, 0:Ny-1] *  h_12[0:Nx-1, 0:Ny-1] * hu_12[0:Nx-1, 0:Ny-1]/h_12[0:Nx-1, 0:Ny-1])
+            
 
-        # Berechnung von F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c (Flussvektoren)
-        for j in range(0, Nx):
-            for k in range(0, Ny):
+        #  Berechnung der h, hu und hv
                 
-                Fa[j,k] = hu[j,k] # Quelle: S.4 (1.1)
-                Fb[j,k] = (hu[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
-                Fc[j,k] = (hu[j,k]*hv[j,k])/(h[j,k])
-                
-                # Fa[j,k] = h[j,k]*(hu[j,k]/h[j,k])   
-                # Fb[j,k] = hu[j,k]*(hu[j,k]/h[j,k])**2 + 0.5*g*(h[j,k]**2)
-                # Fc[j,k] = h[j,k]*(hu[j,k]/h[j,k])*(hv[j,k]/h[j,k]) 
-                
-                Ga[j,k] = hv[j,k] # Quelle: S.4 (1.1)
-                Gb[j,k] = (hu[j,k]*hv[j,k])/(h[j,k])
-                Gc[j,k] = (hv[j,k]**2)/(h[j,k]) + 0.5*g*(h[j,k]**2)
-                
-                # Ga[j,k] = h[j,k]*(hv[j,k]/h[j,k])
-                # Gb[j,k] = h[j,k]*(hu[j,k]/h[j,k])*(hv[j,k]/h[j,k]) 
-                # Gc[j,k] = h[j,k]*(hv[j,k]/h[j,k])**2 + 0.5*g*(h[j,k]**2)
-                
-                if teil == 1:
-                    Sb[j,k] =  (f[j,k] * hv[j,k])
-                    Sc[j,k] = -(f[j,k] * hu[j,k])
-                if teil == 2:
-                    Sb[j,k] = -g*(h[j,k])*dBdx[j,k] + (f[j,k] * h[j,k] * hv[j,k]/h[j,k])
-                    Sc[j,k] = -g*(h[j,k])*dBdy[j,k] - (f[j,k] *  h[j,k] * hu[j,k]/h[j,k])
-        
-        
-        for j in range(0, Nx-1):
-            for k in range(0, Ny-1):
-                h_12[j,k]  = h[j,k]   - (dt/dx) * (Fa[j+1,k] - Fa[j,k]) - ((dt/dy) * (Ga[j,k+1] - Ga[j,k])) # Quelle: TUT
-                hu_12[j,k] = hu[j,k]  - (dt/dx) * (Fb[j+1,k] - Fb[j,k]) - ((dt/dy) * (Gb[j,k+1] - Gb[j,k])) + (dt * Sb[j, k])
-                hv_12[j,k] = hv[j,k]  - (dt/dx) * (Fc[j+1,k] - Fc[j,k]) - ((dt/dy) * (Gc[j,k+1] - Gc[j,k])) + (dt * Sc[j, k])
-                
-                Fa_12[j,k] = hu_12[j,k] # Quelle: S.4 (1.1)
-                Fb_12[j,k] = (hu_12[j,k]**2)/(h_12[j,k]) + 0.5*g*(h_12[j,k]**2)
-                Fc_12[j,k] = (hu_12[j,k]*hv_12[j,k])/(h_12[j,k])
-                
-                Ga_12[j,k] = hv_12[j,k] # Quelle: S.4 (1.1)
-                Gb_12[j,k] = (hu_12[j,k]*hv_12[j,k])/(h_12[j,k])
-                Gc_12[j,k] = (hv_12[j,k]**2)/(h_12[j,k]) + 0.5*g*(h_12[j,k]**2)
-                
-                if teil == 1:
-                    Sb_12[j,k] = (f[j,k] * hv_12[j,k]) # Quelle: Aufgabestellung
-                    Sc_12[j,k] = -(f[j,k] * hu_12[j,k])
-                if teil == 2:
-                    Sb_12[j,k] = -g*(h_12[j,k])*dBdx[j,k] + (f[j,k] * h_12[j,k] * hv_12[j,k]/h_12[j,k])
-                    Sc_12[j,k] = -g*([j,k]*h[j,k])*dBdy[j,k] - (f[j,k] *  h_12[j,k] * hu_12[j,k]/h_12[j,k])
-        
-
-        # Berechnung der h, hu und hv
-        for j in range(1, Nx-1):
-            for k in range(1, Ny-1):
-                h[j,k]   = 0.5 * (h[j,k]  +  h_12[j,k])  - (0.5 * (dt/dx) * (Fa_12[j,k] - Fa_12[j-1,k])) - (0.5*(dt/dy) * (Ga_12[j,k] - Ga_12[j,k-1])) # Quelle: TUT
-                hu[j,k]  = 0.5 * (hu[j,k] + hu_12[j,k])  - (0.5 * (dt/dx) * (Fb_12[j,k] - Fb_12[j-1,k])) - (0.5*(dt/dy) * (Gb_12[j,k] - Gb_12[j,k-1])) + (dt*0.5*Sb_12[j, k])
-                hv[j,k]  = 0.5 * (hv[j,k] + hv_12[j,k])  - (0.5 * (dt/dx) * (Fc_12[j,k] - Fc_12[j-1,k])) - (0.5*(dt/dy) * (Gc_12[j,k] - Gc_12[j,k-1])) + (dt*0.5*Sc_12[j, k])
+        h[1:Nx-1, 1:Ny-1]   = 0.5 * (h[1:Nx-1, 1:Ny-1]  +  h_12[1:Nx-1, 1:Ny-1])  - (0.5 * (dt/dx) * (Fa_12[1:Nx-1, 1:Ny-1] - Fa_12[0:Nx-2, 1:Ny-1])) - (0.5*(dt/dy) * (Ga_12[1:Nx-1, 1:Ny-1] - Ga_12[1:Nx-1, 0:Ny-2])) # Quelle: TUT
+        hu[1:Nx-1, 1:Ny-1]  = 0.5 * (hu[1:Nx-1, 1:Ny-1] + hu_12[1:Nx-1, 1:Ny-1])  - (0.5 * (dt/dx) * (Fb_12[1:Nx-1, 1:Ny-1] - Fb_12[0:Nx-2, 1:Ny-1])) - (0.5*(dt/dy) * (Gb_12[1:Nx-1, 1:Ny-1] - Gb_12[1:Nx-1, 0:Ny-2])) + (dt*0.5*Sb_12[1:Nx-1, 1:Ny-1])
+        hv[1:Nx-1, 1:Ny-1]  = 0.5 * (hv[1:Nx-1, 1:Ny-1] + hv_12[1:Nx-1, 1:Ny-1])  - (0.5 * (dt/dx) * (Fc_12[1:Nx-1, 1:Ny-1] - Fc_12[0:Nx-2, 1:Ny-1])) - (0.5*(dt/dy) * (Gc_12[1:Nx-1, 1:Ny-1] - Gc_12[1:Nx-1, 0:Ny-2])) + (dt*0.5*Sc_12[1:Nx-1, 1:Ny-1])
 
         #Randbedingungen je nach Aufgabe
         if aufgabe == 3.2:
@@ -364,9 +380,50 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             hv = reflektierender_block(hv)
             
         if aufgabe == 3.3:
-            h = periodischer_block(h)
-            hu = periodischer_block(hu)
-            hv = periodischer_block(hv)
+            h = reflektierender_block(h)
+            hu = reflektierender_block(hu)
+            hv = reflektierender_block(hv)
+            
+            # # Randbedingungen links und rechts
+            # for k in range(0, Ny):
+            #     h[0,k] = h[1,k]
+            #     hu[0,k] = hu[1,k]
+            #     hv[0,k] = hv[1,k]
+            #     h[Nx-1,k] = h[Nx-2,k]
+            #     hu[Nx-1,k] = hu[Nx-2,k]
+            #     hv[Nx-1,k] = hv[Nx-2,k]
+            
+            # # Randbedingungen oben und unten
+            # for j in range(0, Nx):
+            #     h[j,0] = h[j,1]
+            #     hu[j,0] = hu[j,1]
+            #     hv[j,0] = hv[j,1]
+            #     h[j,Ny-1] = h[j,Ny-2]
+            #     hu[j,Ny-1] = hu[j,Ny-2]
+            #     hv[j,Ny-1] = hv[j,Ny-2]
+                
+            # # Randbedingungen Ecke links oben   
+            # h[0,0] = h[1,1]
+            # hu[0,0] = hu[1,1]
+            # hv[0,0] = hv[1,1]
+            
+            # # Randbedingungen Ecke rechts oben
+            # h[Nx-1,0] = h[Nx-2,1]
+            # hu[Nx-1,0] = hu[Nx-2,1]
+            # hv[Nx-1,0] = hv[Nx-2,1]
+            
+            # # Randbedingungen Ecke links unten
+            # h[0,Ny-1] = h[1,Ny-2]
+            # hu[0,Ny-1] = hu[1,Ny-2]
+            # hv[0,Ny-1] = hv[1,Ny-2]
+            
+            # # Randbedingungen Ecke rechts unten
+            # h[Nx-1,Ny-1] = h[Nx-2,Ny-2]
+            # hu[Nx-1,Ny-1] = hu[Nx-2,Ny-2]
+            # hv[Nx-1,Ny-1] = hv[Nx-2,Ny-2]
+            
+            
+            
 
         print("Schritt: ", i)
         print(f'Zeitschritt {dt} | Zeitschritt Tutorium = 140.2113615804145') 
@@ -424,26 +481,40 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         
         #Contour plot und Quiver plot in 2D
         if darstellung == 2:
+            # ax_contour.cla()
+            # ax_contour.set_title('Höhenverlauf')
+            # # ax_contour.set_xlim(0, 240e4)
+            # # ax_contour.set_ylim(0, 600e4)
+
+            # contour = ax_contour.contourf(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
+            # cb = fig.colorbar(contour, ax=ax_contour)
+            # # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
+            # ax_contour.quiver(X, Y, u, v)
+            
+            
+            # #Plot Einstellungen
+            # # ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
+            # # ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            # # ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
+            # # ax_contour.set_yticklabels(())
+            
+            # plt.draw()
+            # plt.pause(0.01)
+            # cb.remove()
+            
+            # plot the vortex in the x-y plane
             ax_contour.cla()
             ax_contour.set_title('Höhenverlauf')
-            # ax_contour.set_xlim(0, 240e4)
-            # ax_contour.set_ylim(0, 600e4)
-
-            contour = ax_contour.contourf(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
+            # ax_contour.set_xlim(0, 10)
+            # ax_contour.set_ylim(0, 10)
+            contour = ax_contour.contourf(X, Y, h, vmin=10e3, vmax=15e3 , shading='auto', cmap='jet')
             cb = fig.colorbar(contour, ax=ax_contour)
-            # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
             ax_contour.quiver(X, Y, u, v)
-            
-            
-            #Plot Einstellungen
-            # ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
-            # ax_contour.set_xticklabels(np.arange(0, Nx, 2))
-            # ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
-            # ax_contour.set_yticklabels(())
-            
             plt.draw()
             plt.pause(0.01)
             cb.remove()
+
+            
             
             i+=1
     return h, hu, hv, v2, t2
@@ -480,16 +551,16 @@ if __name__ == "__main__":
     # # 3.1: Barotropische Instabilität
     
     h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
-    np.set_printoptions(precision=16)
-    print(f)
-    print("--------------")
-    print(h)
-    print("--------------")
-    print(hu)
-    print("--------------")
-    print(hv)
-    print("--------------")
-    print("--------------")
+    # np.set_printoptions(precision=16)
+    # print(f)
+    # print("--------------")
+    # print(h)
+    # print("--------------")
+    # print(hu)
+    # print("--------------")
+    # print(hv)
+    # print("--------------")
+    # print("--------------")
     
     # # print(f'h: {h.shape} \n{h}\n ')
     # # print(f'hu: {hu.shape} \n{hu}\n ')
