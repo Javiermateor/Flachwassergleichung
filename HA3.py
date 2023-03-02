@@ -78,10 +78,18 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
         W = 10000 + westwind/g*fc_0*(Y-y0)
         print(f'fc_0: {fc_0}')
         print(f'W: {W}')
-        sigma_x = 5 * dx
-        sigma_y = 5 * dy
         
-        B = 4000*np.exp(-0.5*((X-2000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
+        
+        if Nx>10 and Nx<200:
+            sigma_x = 5 * dx
+            sigma_y = 7 * dy
+        elif(Nx>=200):
+            sigma_x = 9 * dx
+            sigma_y = 7 * dy
+        
+        B = 4000*np.exp(-0.5*((X-(Nx//2)*1e5)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
+       
+            
     
     [dWdx, dWdy] = np.gradient(W, *[dy, dx])
     [dBdx, dBdy] = np.gradient(B, *[dy, dx])
@@ -283,7 +291,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
     if darstellung == 3:
         fig = plt.figure(figsize=(10,10))
     if darstellung == 2:
-        fig = plt.figure(figsize=(20,10))
+        fig = plt.figure(figsize=(30,5))
         ax_contour = fig.add_subplot(111, frameon=False)
         plt.show(block= False)
 
@@ -428,14 +436,14 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
         if darstellung == 2:
             
             ax_contour.cla()
-            # if Nx>100:
-            #     # ax_contour.set_xlim(0, 240e4)
-            #     ax_contour.set_xticks(np.arange(0, Nx*1e6, 20e5))
-            #     ax_contour.set_xticklabels(np.arange(0, Nx, 2))
-            # else:
-            #     ax_contour.set_xlim(0, Nx*1e4)
-            #     ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
-            #     ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            if Nx>100:
+                # ax_contour.set_xlim(0, 240e4)
+                ax_contour.set_xticks(np.arange(0, Nx*1e6, 20e5))
+                ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            else:
+                ax_contour.set_xlim(0, Nx*1e4)
+                ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
+                ax_contour.set_xticklabels(np.arange(0, Nx, 2))
             
             if teil == 1:
                 #Barotropische Instabilität / Höhe gleichen Drucks
@@ -451,7 +459,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
                 contour = ax_contour.pcolormesh(X, Y, B+h, vmin=9.5e3, vmax=10.5e3, shading='auto',cmap ='jet')
                 cb = fig.colorbar(contour, ax=ax_contour)
                 
-                ax_contour.contour(X,Y,B, colors='black', linewidths=0.5)
+                ax_contour.contour(X,Y,B, colors='black', linewidths=0.75)
                 ax_contour.quiver(X, Y, u, v)
             
             # Plot Einstellungen
@@ -491,7 +499,7 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    Nx,Ny = 40, 60
+    Nx,Ny = 270, 60
     CFL = 0.45  
     
     # # 3.1: Barotropische Instabilität
