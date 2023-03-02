@@ -19,7 +19,6 @@ def reflektierender_block(h):
     h[:, -1] = h[:, -2]
     return h
     
-    
 #Anfangsbedingungen Funktionen für Aufgaben 3.2 und 3.3
 
 def anfangsbedingungen32(hh, ht, Nx, Ny):
@@ -89,18 +88,16 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
         
         B = 4000*np.exp(-0.5*((X-(Nx//2)*1e5)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
        
-            
+    #Berechnung der Gradienten
     
     [dWdx, dWdy] = np.gradient(W, *[dy, dx])
     [dBdx, dBdy] = np.gradient(B, *[dy, dx])
     
+    #Berechnung der Geschwindigkeiten
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
-    print(f'Wmax = {np.max(W)}')
-    print(f'W31 = {W[:,30]}')
-    
+
     # Initialisierung der Arrays
-    
     h = W-B
     hu = h*u
     hv = h*v 
@@ -185,18 +182,12 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
         G_k12c[:Nx-1, :Ny-1] = 0.25 * (dy/dt)*(hv[:Nx-1, :Ny-1] - hv[:Nx-1, 1:Ny]) + 0.5 * (Gc[:Nx-1, :Ny-1] + Gc[:Nx-1, 1:Ny])
         
 
-        # # Berechnung der h, hu und hv
-        # for j in range(1, Nx-1):
-        #     for k in range(1, Ny-1):
-        #         h[j,k]  = h[j,k]  - (dt/dx) * (F_j12a[j,k] - F_j12a[j-1,k]) - ((dt/dy) * (G_k12a[j,k] - G_k12a[j,k-1])) # Quelle: HA 3 (3.33)
-        #         hu[j,k] = hu[j,k] - (dt/dx) * (F_j12b[j,k] - F_j12b[j-1,k]) - ((dt/dy) * (G_k12b[j,k] - G_k12b[j,k-1])) # + dt * S(U) für 3.3
-        #         hv[j,k] = hv[j,k] - (dt/dx) * (F_j12c[j,k] - F_j12c[j-1,k]) - ((dt/dy) * (G_k12c[j,k] - G_k12c[j,k-1]))
-                
+        #Berechnung der h, hu und hv
         h[1:Nx-1, 1:Ny-1] = h[1:Nx-1, 1:Ny-1] - (dt/dx) * (F_j12a[1:Nx-1, 1:Ny-1] - F_j12a[0:Nx-2, 1:Ny-1]) - ((dt/dy) * (G_k12a[1:Nx-1, 1:Ny-1] - G_k12a[1:Nx-1, 0:Ny-2])) # Quelle: HA 3 (3.33)
         hu[1:Nx-1, 1:Ny-1] = hu[1:Nx-1, 1:Ny-1] - (dt/dx) * (F_j12b[1:Nx-1, 1:Ny-1] - F_j12b[0:Nx-2, 1:Ny-1]) - ((dt/dy) * (G_k12b[1:Nx-1, 1:Ny-1] - G_k12b[1:Nx-1, 0:Ny-2])) # + dt * S(U) für 3.3
         hv[1:Nx-1, 1:Ny-1] = hv[1:Nx-1, 1:Ny-1] - (dt/dx) * (F_j12c[1:Nx-1, 1:Ny-1] - F_j12c[0:Nx-2, 1:Ny-1]) - ((dt/dy) * (G_k12c[1:Nx-1, 1:Ny-1] - G_k12c[1:Nx-1, 0:Ny-2]))
 
-        # #Randbedingungen
+        #Randbedingungen
         h = reflektierender_block(h)
         hu = reflektierender_block(hu)
         hv = reflektierender_block(hv)
@@ -298,9 +289,9 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
     if darstellung == 3:
         fig = plt.figure(figsize=(10,10))
     if darstellung == 2:
-        if teil == 1:
+        if teil == 2:
             fig = plt.figure(figsize=(30,6))
-        elif teil == 2:
+        elif teil == 3:
             fig = plt.figure(figsize=(30,5))
             
         ax_contour = fig.add_subplot(111, frameon=False)
@@ -442,14 +433,14 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
                 ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
                 ax_contour.set_yticklabels(())
             
-            if teil == 1:
+            if teil == 2:
                 #Barotropische Instabilität / Höhe gleichen Drucks
                 ax_contour.set_title(f'Höhe gleichen Drucks [km], t = {z//3600} Stunden')
                 contour = ax_contour.pcolormesh(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
                 cb = fig.colorbar(contour, ax=ax_contour)
                 ax_contour.quiver(X, Y, u, v)
             
-            elif(teil == 2):
+            elif teil == 3:
                 #Rossby Wellen in der nördlichen Hemisphäre
             
                 ax_contour.set_title(f'Höhe gleichen Drucks [km] mit Windgeschwindigkeitsvektoren t = {z//3600} Stunden')
@@ -463,7 +454,6 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
             plt.pause(0.01)
             cb.remove()
             
-            i+=1
     return h, hu, hv, v2, t2
 
 if __name__ == "__main__":
@@ -473,8 +463,8 @@ if __name__ == "__main__":
     # # Aufagabe 3.2
     
     # # Lax-Friedrich
-    h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
-    h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
+    # h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
+    # h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
     
     # #Maccormack
     # h, hu, hv = anfangsbedingungen32(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
@@ -493,14 +483,14 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    # Nx,Ny = 102, 60
-    # CFL = 0.45  
+    Nx,Ny = 102, 60
+    CFL = 0.45  
     
-    # # 3.1: Barotropische Instabilität
-    # h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
-    # h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=2, B=0, dBdx = 0, dBdy = 0)
+    # # 3.3.1: Barotropische Instabilität
+    h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
+    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=2, B=0, dBdx = 0, dBdy = 0)
     
-    # # 3.2: Rossby Wellen in der nördlichen Hemisphäre
+    # # 3.3.2: Rossby Wellen in der nördlichen Hemisphäre
     # h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
     # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 3, dBdx = dBdx, dBdy = dBdy)
 
