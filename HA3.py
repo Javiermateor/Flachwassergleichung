@@ -444,7 +444,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
                 #Rossby Wellen in der nördlichen Hemisphäre
             
                 ax_contour.set_title(f'Höhe gleichen Drucks [km] mit Windgeschwindigkeitsvektoren t = {z//3600} Stunden')
-                contour = ax_contour.pcolormesh(X, Y, B+h, vmin=9.5e3, vmax=10.5e3, shading='auto',cmap ='jet')
+                contour = ax_contour.contourf(X, Y, B+h, vmin=9.5e3, vmax=10.5e3, shading='auto',cmap ='jet')
                 cb = fig.colorbar(contour, ax=ax_contour)
                 
                 ax_contour.contour(X,Y,B, colors='black', linewidths=0.75)
@@ -483,14 +483,14 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    Nx,Ny = 102, 60
+    Nx,Ny = 240, 60
     CFL = 0.45  
     
-    # # 3.3.1: Barotropische Instabilität
-    h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
-    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=2, B=0, dBdx = 0, dBdy = 0)
+    # # # 3.3.1: Barotropische Instabilität
+    # h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
+    # h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=2, B=0, dBdx = 0, dBdy = 0)
     
     # # 3.3.2: Rossby Wellen in der nördlichen Hemisphäre
-    # h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
-    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 3, dBdx = dBdx, dBdy = dBdy)
+    h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
+    h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 3, dBdx = dBdx, dBdy = dBdy)
 
