@@ -3,41 +3,21 @@ import matplotlib.pyplot as plt
 g = 9.81
 from IPython import display
 
-#Randbedingungen Funktionen
+
+# Randbedingungen Funktionen
 
 def periodischer_block(h):
-    h[0,:] = h[-2,:]
-    h[-1,:] = h[1,:]
-    h[:,0] = h[:,1] # Reflektierend
-    h[:,-1] = h[:,-2] # reflektierend
+    h[0, :] = h[-2, :]
+    h[-1, :] = h[1, :]
     return h
+
 
 def reflektierender_block(h):
-    h[0,:] = h[1,:]
-    h[-1,:] = h[-2,:]
-    h[:,0] = h[:,1]
-    h[:,-1] = h[:,-2]
+    h[0, :] = h[1, :]
+    h[-1, :] = h[-2, :]
+    h[:, 0] = h[:, 1]
+    h[:, -1] = h[:, -2]
     return h
-
-def randbedingungen_h(h):
-    #x-Richtung
-    h[0,:]=h[-2,:] #periodisch x = 0
-    h[-1,:]=h[1,:] #periodisch x am Rand 
-    
-    # #y-Richtung
-    # h[:,0] = 0 #Dirichlet y = 0
-    # h[:,-1] = 0 #Dirichlet y am Rand
-    return h
-    
-def randbedingungen_hu(h):
-    #x-Richtung
-    h[0,:]=h[-2,:] #periodisch x = 0
-    h[-1,:]=h[1,:] #periodisch x am Rand 
-    
-    #y-Richtung
-    h[:,0] = 0 #Dirichlet y = 0
-    h[:,-1] = 0 #Dirichlet y am Rand
-    
     
     
 #Anfangsbedingungen Funktionen für Aufgaben 3.2 und 3.3
@@ -106,10 +86,6 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
-
-    # print(dWdx)
-    # print("--------------")
-    # print(dWdy)
     
     # Initialisierung der Arrays
     
@@ -120,7 +96,7 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     if darstellung == 1:
         return h, hu, hv, f
     elif(darstellung == 2):
-        return h, hu, hv, f, dBdx, dBdy
+        return h, hu, hv, f, B, dBdx, dBdy
     
 
 def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
@@ -251,7 +227,7 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
         
     return h, hu, hv, v1, t1
 
-def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy=0):
+def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBdy):
     
     #Diskretisierung des Gebietes
     if (aufgabe == 3.2):
@@ -311,15 +287,19 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
     #MacCormack Verfahren 
     while z < tmax:
 
-        # Berechnung der Eigenwerte 
-        EWX = np.array([hu[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hu[0,0]/h[0,0]+np.sqrt(g*h[0,0])]) # Quelle: S.34 (3.5)
-        EWY = np.array([hv[0,0]/h[0,0]-np.sqrt(g*h[0,0]), hv[0,0]/h[0,0]+np.sqrt(g*h[0,0])])
-        for j in range(0,Nx):
-            for k in range(0,Ny):
-                EWX = np.append(EWX,[hu[j,k]/h[j,k]-np.sqrt(g*h[j,k]), hu[j,k]/h[j,k]+np.sqrt(g*h[j,k])])
-                EWY = np.append(EWY,[hv[j,k]/h[j,k]-np.sqrt(g*h[j,k]), hv[j,k]/h[j,k]+np.sqrt(g*h[j,k])])
-        dt = CFL * min(dx,dy)/(max(np.amax(EWX), np.amax(EWY))) # Quelle: S. 13 (1.58)
+        # Berechnung der Eigenwerte
+        EWX = np.array([hu[0, 0] / h[0, 0] - np.sqrt(g * h[0, 0]),
+                        hu[0, 0] / h[0, 0] + np.sqrt(g * h[0, 0])])  # Quelle: S.34 (3.5)
+        EWY = np.array([hv[0, 0] / h[0, 0] - np.sqrt(g * h[0, 0]), hv[0, 0] / h[0, 0] + np.sqrt(g * h[0, 0])])
+        for j in range(0, Nx):
+            for k in range(0, Ny):
+                EWX = np.append(EWX,
+                                [hu[j, k] / h[j, k] - np.sqrt(g * h[j, k]), hu[j, k] / h[j, k] + np.sqrt(g * h[j, k])])
+                EWY = np.append(EWY,
+                                [hv[j, k] / h[j, k] - np.sqrt(g * h[j, k]), hv[j, k] / h[j, k] + np.sqrt(g * h[j, k])])
+        dt = CFL * min(dx, dy) / (max(np.amax(EWX), np.amax(EWY)))  # Quelle: S. 13 (1.58)
         z += dt
+
         
         # Berechnung von Flussvektoren in der Mitte des Zeitschritts
         
@@ -339,8 +319,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             Sc[:Nx,:Ny] = -(f[:Nx,:Ny] * hu[:Nx,:Ny])
         if teil == 2:   
             
-            Sb[:Nx,:Ny] = -g*(h[:Nx,:Ny])*dBdx[:Nx,:Ny] + (f[:Nx,:Ny] * h[:Nx,:Ny] * hv[:Nx,:Ny]/h[:Nx,:Ny])
-            Sc[:Nx,:Ny] = -g*(h[:Nx,:Ny])*dBdy[:Nx,:Ny] - (f[:Nx,:Ny] *  h[:Nx,:Ny] * hu[:Nx,:Ny]/h[:Nx,:Ny])
+            Sb[:Nx,:Ny] = -g*(h[:Nx,:Ny])*dBdx[:Nx,:Ny] + (f[:Nx,:Ny] * hv[:Nx,:Ny])
+            Sc[:Nx,:Ny] = -g*(h[:Nx,:Ny])*dBdy[:Nx,:Ny] - (f[:Nx,:Ny] * hu[:Nx,:Ny])
         
         # Berechnung von Flussvektoren an den Randzellen
         
@@ -363,8 +343,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             Sb_12[0:Nx-1, 0:Ny-1] = (f[0:Nx-1, 0:Ny-1] * hv_12[0:Nx-1, 0:Ny-1])
             Sc_12[0:Nx-1, 0:Ny-1] = -(f[0:Nx-1, 0:Ny-1] * hu_12[0:Nx-1, 0:Ny-1])
         if teil == 2:
-            Sb_12[0:Nx-1, 0:Ny-1] = -g*(h_12[0:Nx-1, 0:Ny-1])*dBdx[0:Nx-1, 0:Ny-1] + (f[0:Nx-1, 0:Ny-1] * h_12[0:Nx-1, 0:Ny-1] * hv_12[0:Nx-1, 0:Ny-1]/h_12[0:Nx-1, 0:Ny-1])
-            Sc_12[0:Nx-1, 0:Ny-1] = -g*(h_12[0:Nx-1, 0:Ny-1])*dBdy[0:Nx-1, 0:Ny-1] - (f[0:Nx-1, 0:Ny-1] *  h_12[0:Nx-1, 0:Ny-1] * hu_12[0:Nx-1, 0:Ny-1]/h_12[0:Nx-1, 0:Ny-1])
+            Sb_12[0:Nx-1, 0:Ny-1] = -g*(h_12[0:Nx-1, 0:Ny-1])*dBdx[0:Nx-1, 0:Ny-1] + (f[0:Nx-1, 0:Ny-1] * hv_12[0:Nx-1, 0:Ny-1])
+            Sc_12[0:Nx-1, 0:Ny-1] = -g*(h_12[0:Nx-1, 0:Ny-1])*dBdy[0:Nx-1, 0:Ny-1] - (f[0:Nx-1, 0:Ny-1] * hu_12[0:Nx-1, 0:Ny-1])
             
 
         #  Berechnung der h, hu und hv
@@ -380,49 +360,9 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
             hv = reflektierender_block(hv)
             
         if aufgabe == 3.3:
-            h = reflektierender_block(h)
-            hu = reflektierender_block(hu)
-            hv = reflektierender_block(hv)
-            
-            # # Randbedingungen links und rechts
-            # for k in range(0, Ny):
-            #     h[0,k] = h[1,k]
-            #     hu[0,k] = hu[1,k]
-            #     hv[0,k] = hv[1,k]
-            #     h[Nx-1,k] = h[Nx-2,k]
-            #     hu[Nx-1,k] = hu[Nx-2,k]
-            #     hv[Nx-1,k] = hv[Nx-2,k]
-            
-            # # Randbedingungen oben und unten
-            # for j in range(0, Nx):
-            #     h[j,0] = h[j,1]
-            #     hu[j,0] = hu[j,1]
-            #     hv[j,0] = hv[j,1]
-            #     h[j,Ny-1] = h[j,Ny-2]
-            #     hu[j,Ny-1] = hu[j,Ny-2]
-            #     hv[j,Ny-1] = hv[j,Ny-2]
-                
-            # # Randbedingungen Ecke links oben   
-            # h[0,0] = h[1,1]
-            # hu[0,0] = hu[1,1]
-            # hv[0,0] = hv[1,1]
-            
-            # # Randbedingungen Ecke rechts oben
-            # h[Nx-1,0] = h[Nx-2,1]
-            # hu[Nx-1,0] = hu[Nx-2,1]
-            # hv[Nx-1,0] = hv[Nx-2,1]
-            
-            # # Randbedingungen Ecke links unten
-            # h[0,Ny-1] = h[1,Ny-2]
-            # hu[0,Ny-1] = hu[1,Ny-2]
-            # hv[0,Ny-1] = hv[1,Ny-2]
-            
-            # # Randbedingungen Ecke rechts unten
-            # h[Nx-1,Ny-1] = h[Nx-2,Ny-2]
-            # hu[Nx-1,Ny-1] = hu[Nx-2,Ny-2]
-            # hv[Nx-1,Ny-1] = hv[Nx-2,Ny-2]
-            
-            
+            h = periodischer_block(h)
+            hu = periodischer_block(hu)
+            hv = periodischer_block(hv)
             
 
         print("Schritt: ", i)
@@ -481,40 +421,41 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, darstellung, aufgabe,teil,dBdx=0, dBdy
         
         #Contour plot und Quiver plot in 2D
         if darstellung == 2:
-            # ax_contour.cla()
-            # ax_contour.set_title('Höhenverlauf')
-            # # ax_contour.set_xlim(0, 240e4)
-            # # ax_contour.set_ylim(0, 600e4)
-
-            # contour = ax_contour.contourf(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
-            # cb = fig.colorbar(contour, ax=ax_contour)
-            # # ax_cotour.pcolormesh(X, Y, h, shading='auto', vmax=2, vmin=1.5, cmap ='jet')
-            # ax_contour.quiver(X, Y, u, v)
             
-            
-            # #Plot Einstellungen
-            # # ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
-            # # ax_contour.set_xticklabels(np.arange(0, Nx, 2))
-            # # ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
-            # # ax_contour.set_yticklabels(())
-            
-            # plt.draw()
-            # plt.pause(0.01)
-            # cb.remove()
-            
-            # plot the vortex in the x-y plane
             ax_contour.cla()
-            ax_contour.set_title('Höhenverlauf')
-            # ax_contour.set_xlim(0, 10)
-            # ax_contour.set_ylim(0, 10)
-            contour = ax_contour.contourf(X, Y, h, vmin=10e3, vmax=15e3 , shading='auto', cmap='jet')
-            cb = fig.colorbar(contour, ax=ax_contour)
-            ax_contour.quiver(X, Y, u, v)
+            if Nx>100:
+                # ax_contour.set_xlim(0, 240e4)
+                ax_contour.set_xticks(np.arange(0, Nx*1e6, 20e5))
+                ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            else:
+                ax_contour.set_xlim(0, Nx*1e4)
+                ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
+                ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            
+            if teil == 1:
+                #Barotropische Instabilität / Höhe gleichen Drucks
+                ax_contour.set_title(f'Höhe gleichen Drucks [km], t = {z//3600} Stunden')
+                contour = ax_contour.pcolormesh(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
+                cb = fig.colorbar(contour, ax=ax_contour)
+                ax_contour.quiver(X, Y, u, v)
+            
+            elif(teil == 2):
+                #Rossby Wellen in der nördlichen Hemisphäre
+            
+                ax_contour.set_title(f'Höhe gleichen Drucks [km] mit Windgeschwindigkeitsvektoren t = {z//3600} Stunden')
+                contour = ax_contour.pcolormesh(X, Y, h, vmin=9.5e3, vmax=10.5e3, shading='auto',cmap ='jet')
+                cb = fig.colorbar(contour, ax=ax_contour)
+                
+                ax_contour.contour(X,Y,B, colors='black', linewidths=0.5)
+                ax_contour.quiver(X, Y, -u, v)
+            
+            # Plot Einstellungen
+            ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
+            ax_contour.set_yticklabels(())
+            
             plt.draw()
             plt.pause(0.01)
             cb.remove()
-
-            
             
             i+=1
     return h, hu, hv, v2, t2
@@ -545,31 +486,17 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    Nx,Ny = 24, 60
+    Nx,Ny = 240, 60
     CFL = 0.45
     
     # # 3.1: Barotropische Instabilität
     
     h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
-    # np.set_printoptions(precision=16)
-    # print(f)
-    # print("--------------")
-    # print(h)
-    # print("--------------")
-    # print(hu)
-    # print("--------------")
-    # print(hv)
-    # print("--------------")
-    # print("--------------")
+    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=1, B=0, dBdx = 0, dBdy = 0)
     
-    # # print(f'h: {h.shape} \n{h}\n ')
-    # # print(f'hu: {hu.shape} \n{hu}\n ')
-    # # print(f'hv: {hv.shape} \n{hv}\n ')
-    # # print(f'f:{f.shape} \n{f} ')
+    # # 3.2: Rossby Wellen in der nördlichen Hemisphäre
+    # h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
+    # # print(f'dBdx {dBdx.shape}: \n{dBdx},')
     
-    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=1)
-    
-    # 3.2: Rossby Wellen in der nördlichen Hemisphäre
-    # h, hu, hv, f, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
-    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung = 2, aufgabe = 3.3, teil = 2, dBdx = dBdx, dBdy = dBdy)
+    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 2, dBdx = dBdx, dBdy = dBdy)
 
