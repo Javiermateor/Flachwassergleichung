@@ -74,18 +74,22 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     elif darstellung==2:   
         #Rossby Wellen in der nördlichen Hemisphäre
         westwind = 30
-        W = 10000 + (westwind/g)*fc_0*(Y-y0)
+        fc_0 = 2*Ωe*np.sin(latitude)
+        W = 10000 + westwind/g*fc_0*(Y-y0)
+        print(f'fc_0: {fc_0}')
+        print(f'W: {W}')
+        sigma_x = 5 * dx
+        sigma_y = 5 * dy
         
-        sigma_x = 10*dx
-        sigma_y = 10*dy
-        
-        B = 2000*np.exp(-0.5*((X-12000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
+        B = 4000*np.exp(-0.5*((X-2000000)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
     
     [dWdx, dWdy] = np.gradient(W, *[dy, dx])
     [dBdx, dBdy] = np.gradient(B, *[dy, dx])
     
     u = (-g/f)*dWdy
     v = (g/f)*dWdx
+    print(f'Wmax = {np.max(W)}')
+    print(f'W31 = {W[:,30]}')
     
     # Initialisierung der Arrays
     
@@ -352,6 +356,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
         h[1:Nx-1, 1:Ny-1]   = 0.5 * (h[1:Nx-1, 1:Ny-1]  +  h_12[1:Nx-1, 1:Ny-1])  - (0.5 * (dt/dx) * (Fa_12[1:Nx-1, 1:Ny-1] - Fa_12[0:Nx-2, 1:Ny-1])) - (0.5*(dt/dy) * (Ga_12[1:Nx-1, 1:Ny-1] - Ga_12[1:Nx-1, 0:Ny-2])) # Quelle: TUT
         hu[1:Nx-1, 1:Ny-1]  = 0.5 * (hu[1:Nx-1, 1:Ny-1] + hu_12[1:Nx-1, 1:Ny-1])  - (0.5 * (dt/dx) * (Fb_12[1:Nx-1, 1:Ny-1] - Fb_12[0:Nx-2, 1:Ny-1])) - (0.5*(dt/dy) * (Gb_12[1:Nx-1, 1:Ny-1] - Gb_12[1:Nx-1, 0:Ny-2])) + (dt*0.5*Sb_12[1:Nx-1, 1:Ny-1])
         hv[1:Nx-1, 1:Ny-1]  = 0.5 * (hv[1:Nx-1, 1:Ny-1] + hv_12[1:Nx-1, 1:Ny-1])  - (0.5 * (dt/dx) * (Fc_12[1:Nx-1, 1:Ny-1] - Fc_12[0:Nx-2, 1:Ny-1])) - (0.5*(dt/dy) * (Gc_12[1:Nx-1, 1:Ny-1] - Gc_12[1:Nx-1, 0:Ny-2])) + (dt*0.5*Sc_12[1:Nx-1, 1:Ny-1])
+        
 
         #Randbedingungen je nach Aufgabe
         if aufgabe == 3.2:
@@ -423,14 +428,14 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
         if darstellung == 2:
             
             ax_contour.cla()
-            if Nx>100:
-                # ax_contour.set_xlim(0, 240e4)
-                ax_contour.set_xticks(np.arange(0, Nx*1e6, 20e5))
-                ax_contour.set_xticklabels(np.arange(0, Nx, 2))
-            else:
-                ax_contour.set_xlim(0, Nx*1e4)
-                ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
-                ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            # if Nx>100:
+            #     # ax_contour.set_xlim(0, 240e4)
+            #     ax_contour.set_xticks(np.arange(0, Nx*1e6, 20e5))
+            #     ax_contour.set_xticklabels(np.arange(0, Nx, 2))
+            # else:
+            #     ax_contour.set_xlim(0, Nx*1e4)
+            #     ax_contour.set_xticks(np.arange(0, Nx*1e5, 20e4))
+            #     ax_contour.set_xticklabels(np.arange(0, Nx, 2))
             
             if teil == 1:
                 #Barotropische Instabilität / Höhe gleichen Drucks
@@ -443,11 +448,11 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
                 #Rossby Wellen in der nördlichen Hemisphäre
             
                 ax_contour.set_title(f'Höhe gleichen Drucks [km] mit Windgeschwindigkeitsvektoren t = {z//3600} Stunden')
-                contour = ax_contour.pcolormesh(X, Y, h, vmin=9.5e3, vmax=10.5e3, shading='auto',cmap ='jet')
+                contour = ax_contour.pcolormesh(X, Y, B+h, vmin=9.5e3, vmax=10.5e3, shading='auto',cmap ='jet')
                 cb = fig.colorbar(contour, ax=ax_contour)
                 
                 ax_contour.contour(X,Y,B, colors='black', linewidths=0.5)
-                ax_contour.quiver(X, Y, -u, v)
+                ax_contour.quiver(X, Y, u, v)
             
             # Plot Einstellungen
             ax_contour.set_xlabel(f' x [{10}\u00B3 km]')
@@ -486,17 +491,29 @@ if __name__ == "__main__":
     
     # Aufgabe 3.3
     
-    Nx,Ny = 240, 60
-    CFL = 0.45
+    Nx,Ny = 40, 60
+    CFL = 0.45  
     
     # # 3.1: Barotropische Instabilität
     
-    h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
-    h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=1, B=0, dBdx = 0, dBdy = 0)
+    # h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
+    # h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=1, B=0, dBdx = 0, dBdy = 0)
     
     # # 3.2: Rossby Wellen in der nördlichen Hemisphäre
-    # h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
-    # # print(f'dBdx {dBdx.shape}: \n{dBdx},')
+    h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
     
-    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 2, dBdx = dBdx, dBdy = dBdy)
+    
+    print(f'B {B.shape}: \n{B},')
+    print(np.max(B))
+
+
+    # print(f'h {h.shape}: \n{h},')
+    # print(f'hu {h.shape}: \n{hu},')
+    # print(f'hv {h.shape}: \n{hv},')
+    
+    
+    
+    # print(f'dBdx {dBdx.shape}: \n{dBdx},')
+    
+    h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 2, dBdx = dBdx, dBdy = dBdy)
 
