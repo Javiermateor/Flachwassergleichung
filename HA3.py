@@ -11,7 +11,6 @@ def periodischer_block(h):
     h[-1, :] = h[1, :]
     return h
 
-
 def reflektierender_block(h):
     h[0, :] = h[1, :]
     h[-1, :] = h[-2, :]
@@ -256,7 +255,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
     if aufgabe == 3.2:
         tmax = 5
     if aufgabe == 3.3:
-        tmax = 60 * 3600
+        tmax = 20 * 3600
 
 
     # Initialisierung der Matrizen F_j12a, F_j12b, F_j12c und  G_k12a, G_k12b, G_k12c
@@ -280,9 +279,8 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
     Gc_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     Sb_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
     Sc_12 = np.zeros((Nx-1, Ny-1), dtype = np.double)
-    v2 = np.zeros(1)
+    v2 = np.amax(h)
     t2 = np.zeros(1)
-    v2[0] =  np.amax(h)
 
     #Initialisierung des Plots
     
@@ -391,7 +389,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
         u = hu/h
         v = hv/h
         v2 = np.append(v2, [np.amax(h)])
-        t2 = np.append(v2, [z])
+        t2 = np.append(t2, [z])
 
         # Meshgrid für die Darstellung
         if (aufgabe==3.2):
@@ -438,7 +436,7 @@ def maccormack(h, hu, hv, f, CFL, Nx, Ny, B, darstellung, aufgabe,teil,dBdx, dBd
                 ax_contour.set_title(f'Höhe gleichen Drucks [km], t = {z//3600} Stunden')
                 contour = ax_contour.pcolormesh(X, Y, h, vmin=9.5e3, vmax=10.5e3 , shading='auto', cmap='jet')
                 cb = fig.colorbar(contour, ax=ax_contour)
-                ax_contour.quiver(X, Y, u, v)
+                # ax_contour.quiver(X, Y, u, v)
             
             elif teil == 3:
                 #Rossby Wellen in der nördlichen Hemisphäre
@@ -460,16 +458,19 @@ if __name__ == "__main__":
     
     plt.style.use('seaborn')
     
-    # # Aufagabe 3.2
+    #Aufgabe 3.3.1 und 3.3.2 sind kommentiert. Je nach Aufgabe können die entsprechenden Zeilen auskommentiert werden. 
     
-    # # Lax-Friedrich
+    ### Aufagabe 3.2 ###
+    
+    # Lax-Friedrich
     # h, hu, hv = anfangsbedingungen32(hh=2, ht=1.5, Nx=50, Ny=50)
     # h, hu, hv, v1, t1 = erhaltungsschema_2D(h, hu, hv, CFL=0.4, Nx = 50, Ny = 50, darstellung=3)
     
-    # #Maccormack
+    #Maccormack
     # h, hu, hv = anfangsbedingungen32(hh = 2, ht = 1.5, Nx = 50, Ny = 50)
     # f = np.zeros([50, 50])
     # h, hu, hv, v2, t2 = maccormack(h, hu, hv, f, CFL=0.4, Nx = 50, Ny = 50,  darstellung= 3, aufgabe= 3.2, B=0,teil = 1, dBdx = 0, dBdy = 0)
+    
     
     # # Vergleich der Lösungen
     # plt.plot(t2, v2, label='MacCormack')
@@ -480,17 +481,20 @@ if __name__ == "__main__":
     # plt.legend()
     # plt.show()
     
+
+    ### Aufgabe 3.3 ###
     
-    # Aufgabe 3.3
+    #Die zwei folgenden Zeilen müssen auch auskommentiert werden, wenn die Aufgabe 3.3.1 oder 3.3.2 gelöst werden soll.
     
-    Nx,Ny = 240, 60
-    CFL = 0.45  
+    # Nx,Ny = 240, 60
+    # CFL = 0.45  
     
-    # # # 3.3.1: Barotropische Instabilität
+    # # 3.3.1: Barotropische Instabilität
     # h, hu, hv, f = anfangsbedingungen33(Nx,Ny)
     # h, hu, hv, v3, t3 = maccormack(h, hu, hv, f, CFL, Nx, Ny,  darstellung= 2, aufgabe= 3.3, teil=2, B=0, dBdx = 0, dBdy = 0)
     
+    
     # # 3.3.2: Rossby Wellen in der nördlichen Hemisphäre
-    h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
-    h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 3, dBdx = dBdx, dBdy = dBdy)
+    # h, hu, hv, f, B, dBdx, dBdy = anfangsbedingungen33(Nx,Ny,darstellung = 2)
+    # h, hu, hv, v4, t4 = maccormack(h, hu, hv, f, CFL, Nx, Ny,B,  darstellung = 2, aufgabe = 3.3, teil = 3, dBdx = dBdx, dBdy = dBdy)
 
