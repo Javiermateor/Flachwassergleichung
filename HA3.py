@@ -36,7 +36,7 @@ def anfangsbedingungen32(hh, ht, Nx, Ny):
                 h[j, k] = ht
     return h, hu, hv
 
-def anfangsbedingungen33(Nx,Ny,darstellung=1):
+def anfangsbedingungen33(Nx, Ny, darstellung=1):
 
      # Anfangsparameter
     interval = 100e3
@@ -58,7 +58,7 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
 
     latitude = 35
     θ_0 = np.deg2rad(latitude) # Breitengrad in Bogenmaß
-    fc_0 = 2*Ωe*np.sin(θ_0) # Mittlere Zentrifugalkraft in 1/s^2
+    fc_0 = 2 * Ωe * np.sin(θ_0) # Mittlere Zentrifugalkraft in 1/s^2
     f = fc_0 + (2*Ωe/Re)*(Y-y0) # Coriolisfaktor
 
 
@@ -72,8 +72,8 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
     elif darstellung==2:
         #Rossby Wellen in der nördlichen Hemisphäre
         westwind = 30
-        fc_0 = 2*Ωe*np.sin(latitude)
-        W = 10000 + westwind/g*fc_0*(Y-y0)
+        fc_0 = 2 * Ωe * np.sin(latitude)
+        W = 10000 + westwind/g * fc_0 * (Y-y0)
         print(f'fc_0: {fc_0}')
         print(f'W: {W}')
 
@@ -85,7 +85,7 @@ def anfangsbedingungen33(Nx,Ny,darstellung=1):
             sigma_x = 9 * dx
             sigma_y = 7 * dy
 
-        B = 4000*np.exp(-0.5*((X-(Nx//2)*1e5)/sigma_x)**2-0.5*((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
+        B = 4000 * np.exp(-0.5 * ((X-(Nx//2) * 1e5)/sigma_x)**2-0.5 * ((Y-y0)/sigma_y)**2) #https://en.wikipedia.org/wiki/Gaussian_function
 
     #Berechnung der Gradienten
 
@@ -161,9 +161,9 @@ def erhaltungsschema_2D(h, hu, hv, CFL, Nx, Ny, darstellung):
 
         # Berechnung von Flussvektoren in der Mitte des Zeitschritts
         #x-Richtung
-        Fa[:Nx,:Ny] = hu[:Nx,:Ny]
-        Fb[:Nx,:Ny] = (hu[:Nx,:Ny]**2)/(h[:Nx,:Ny]) + 0.5*g*(h[:Nx,:Ny]**2)
-        Fc[:Nx,:Ny] = (hu[:Nx,:Ny]*hv[:Nx,:Ny])/(h[:Nx,:Ny])
+        Fa[:Nx, :Ny] = hu[:Nx, :Ny]
+        Fb[:Nx, :Ny] = (hu[:Nx, :Ny]**2)/(h[:Nx, :Ny]) + 0.5*g*(h[:Nx, :Ny]**2)
+        Fc[:Nx, :Ny] = (hu[:Nx, :Ny]*hv[:Nx, :Ny])/(h[:Nx, :Ny])
 
         #y-Richtung
         Ga[:Nx,:Ny] = hv[:Nx,:Ny]

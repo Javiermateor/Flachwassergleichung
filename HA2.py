@@ -120,19 +120,19 @@ if __name__ == "__main__":
         x = np.linspace(0, 1, N[i])
         t = np.linspace(0, 0.1, N[i])
         
-        h_ana,u = dammbruch(x,t,x0,hl,hr,Sw)
+        h_ana,u = dammbruch(x, t, x0, hl, hr, Sw)
         h = erhaltungsschema(CFL, N[i], hl, hr, x0)
         
-        axs[i//2,i%2].plot(x, h_ana[:,-1], label='Analytisch')
-        axs[i//2,i%2].plot(x, h[:,0], label='Numerisch')
-        
-
-        axs[i//2,i%2].set_xlabel('x')
-        axs[i//2,i%2].set_ylabel('Höhe')
-        axs[i//2,i%2].title.set_fontsize(13)
-        axs[i//2,i%2].set_xlim(0,1)
-        axs[i//2,i%2].set_ylim(0,1)
-        axs[i//2,i%2].set_title(f'N = {N[i]}')
-        axs[i//2,i%2].legend()
+        axs[i//2, i%2].plot(x, h_ana[:, -1], label='Analytisch')
+        axs[i//2, i%2].plot(x, h[:, 0], label='Numerisch')
+         
+ 
+        axs[i//2, i%2].set_xlabel('x')
+        axs[i//2, i%2].set_ylabel('Höhe')
+        axs[i//2, i%2].title.set_fontsize(13)
+        axs[i//2, i%2].set_xlim(0, 1)
+        axs[i//2, i%2].set_ylim(0, 1)
+        axs[i//2, i%2].set_title(f'N = {N[i]}')
+        axs[i//2, i%2].legend()
 
     plt.show()
